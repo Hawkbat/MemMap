@@ -12,6 +12,10 @@
             <div class="tool" id="tool-open" title="Open"><i class="fa fa-folder-open"></i></div>
             <div class="tool" id="tool-save" title="Save"><i class="fa fa-download"></i></div>
             <div class="spacer"></div>
+            <div class="tool" id="tool-cut" title="Cut"><i class="fa fa-cut"></i></div>
+            <div class="tool" id="tool-copy" title="Copy"><i class="fa fa-copy"></i></div>
+            <div class="tool" id="tool-paste" title="Paste"><i class="fa fa-paste"></i></div>
+            <div class="spacer"></div>
             <div class="tool" id="tool-undo" title="Undo" data-count="0"><i class="fa fa-undo"></i></div>
             <div class="tool" id="tool-redo" title="Redo" data-count="0"><i class="fa fa-repeat"></i></div>
             <div class="spacer"></div>
@@ -30,7 +34,10 @@
                 <label class="field">Description</label>
                 <textarea class="field" name="desc"></textarea>
             </div>
-            <div id="container" class="col"></div>
+            <div class="col expand">
+                <div id="tabs" class="row"></div>
+                <div id="container" class="col"></div>
+            </div>
             <div id="project" class="col"></div>
         </div>
     </body>

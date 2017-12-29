@@ -48,7 +48,7 @@ class AddAction extends Action {
     }
 
     do() {
-        this.item = new Item(1, '', '')
+        this.item = new Item(0, '', '')
         this.item.name = 'Item ' + this.item.id
         this.item.parent = this.parent
         this.parent.subs.push(this.item)
@@ -252,7 +252,7 @@ class Item {
         let out = ''
         out += '<div class="col">'
         out += '<div class="row item" draggable="true" data-id="' + this.id + '">'
-        out += '<div class="cell">' + toHex(start) + '-' + toHex(start + this.size - 1) + ':</div>'
+        if (this.size > 0) out += '<div class="cell">' + toHex(start) + '-' + toHex(start + this.size - 1) + ':</div>'
         if (this.desc)
             out += '<div class="cell">' + this.name + ' (' + this.desc + ')</div>'
         else
@@ -316,18 +316,37 @@ function getItemEle(ele: HTMLElement) {
     return ele
 }
 
-function bindTool(name: string, action: (item: Item) => void) {
+function bindTool(name: string, key: string, action: (item: Item) => void) {
     let tool = document.body.querySelector('#tool-' + name) as HTMLElement
     tool.addEventListener('click', e => {
         action(getSelected())
     })
+
+    if (key) {
+        document.addEventListener('keydown', e => {
+            if (!document.activeElement || document.activeElement == document.body) {
+                if (e.key == key) {
+                    e.preventDefault()
+                    action(getSelected())
+                }
+            }
+        })
+    }
+}
+
+function updateTabs() {
+    let out = ''
+    out += '<div class="tab selected">' + Item.root.name + '</div>'
+    out += '<div id="new-tab" class="tab"><i class="fa fa-plus"></i></div>'
+    document.getElementById('tabs').innerHTML = out
 }
 
 function redraw() {
     container.innerHTML = Item.root.render()
+    updateTabs()
 }
 
-Item.root = new Item(0x10000, "Memory Map", "")
+Item.root = new Item(0x10000, "Map 1", "")
 
 let container = document.getElementById('container')
 container.addEventListener('click', e => {
@@ -374,23 +393,23 @@ bindInput('name')
 bindInput('desc')
 bindInput('size')
 
-bindTool('undo', item => Action.undo())
-bindTool('redo', item => Action.redo())
+bindTool('undo', 'z', item => Action.undo())
+bindTool('redo', 'y', item => Action.redo())
 
-bindTool('add', item => Action.do(new AddAction(item)))
+bindTool('add', '', item => Action.do(new AddAction(item)))
 
-bindTool('rem', item => {
+bindTool('rem', '', item => {
     if (item && item.parent) Action.do(new RemoveAction(item))
 })
 
-bindTool('up', item => {
+bindTool('up', '', item => {
     if (item && item.parent) {
         let index = item.parent.subs.indexOf(item)
         if (index > 0) Action.do(new MoveUpAction(item))
     }
 })
 
-bindTool('down', item => {
+bindTool('down', '', item => {
     if (item && item.parent) {
         let index = item.parent.subs.indexOf(item)
         if (index < item.parent.subs.length - 1) Action.do(new MoveDownAction(item))

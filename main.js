@@ -50,7 +50,7 @@ var AddAction = /** @class */ (function (_super) {
         return _this;
     }
     AddAction.prototype.do = function () {
-        this.item = new Item(1, '', '');
+        this.item = new Item(0, '', '');
         this.item.name = 'Item ' + this.item.id;
         this.item.parent = this.parent;
         this.parent.subs.push(this.item);
@@ -219,7 +219,8 @@ var Item = /** @class */ (function () {
         var out = '';
         out += '<div class="col">';
         out += '<div class="row item" draggable="true" data-id="' + this.id + '">';
-        out += '<div class="cell">' + toHex(start) + '-' + toHex(start + this.size - 1) + ':</div>';
+        if (this.size > 0)
+            out += '<div class="cell">' + toHex(start) + '-' + toHex(start + this.size - 1) + ':</div>';
         if (this.desc)
             out += '<div class="cell">' + this.name + ' (' + this.desc + ')</div>';
         else
@@ -283,16 +284,33 @@ function getItemEle(ele) {
         ele = ele.parentElement;
     return ele;
 }
-function bindTool(name, action) {
+function bindTool(name, key, action) {
     var tool = document.body.querySelector('#tool-' + name);
     tool.addEventListener('click', function (e) {
         action(getSelected());
     });
+    if (key) {
+        document.addEventListener('keydown', function (e) {
+            if (!document.activeElement || document.activeElement == document.body) {
+                if (e.key == key) {
+                    e.preventDefault();
+                    action(getSelected());
+                }
+            }
+        });
+    }
+}
+function updateTabs() {
+    var out = '';
+    out += '<div class="tab selected">' + Item.root.name + '</div>';
+    out += '<div id="new-tab" class="tab"><i class="fa fa-plus"></i></div>';
+    document.getElementById('tabs').innerHTML = out;
 }
 function redraw() {
     container.innerHTML = Item.root.render();
+    updateTabs();
 }
-Item.root = new Item(0x10000, "Memory Map", "");
+Item.root = new Item(0x10000, "Map 1", "");
 var container = document.getElementById('container');
 container.addEventListener('click', function (e) {
     var ele = getItemEle(e.target);
@@ -336,21 +354,21 @@ container.addEventListener('drop', function (e) {
 bindInput('name');
 bindInput('desc');
 bindInput('size');
-bindTool('undo', function (item) { return Action.undo(); });
-bindTool('redo', function (item) { return Action.redo(); });
-bindTool('add', function (item) { return Action.do(new AddAction(item)); });
-bindTool('rem', function (item) {
+bindTool('undo', 'z', function (item) { return Action.undo(); });
+bindTool('redo', 'y', function (item) { return Action.redo(); });
+bindTool('add', '', function (item) { return Action.do(new AddAction(item)); });
+bindTool('rem', '', function (item) {
     if (item && item.parent)
         Action.do(new RemoveAction(item));
 });
-bindTool('up', function (item) {
+bindTool('up', '', function (item) {
     if (item && item.parent) {
         var index = item.parent.subs.indexOf(item);
         if (index > 0)
             Action.do(new MoveUpAction(item));
     }
 });
-bindTool('down', function (item) {
+bindTool('down', '', function (item) {
     if (item && item.parent) {
         var index = item.parent.subs.indexOf(item);
         if (index < item.parent.subs.length - 1)

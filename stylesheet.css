@@ -124,6 +124,36 @@ textarea.field {
     font-weight: bold;
 }
 
+.tab {
+    background-color: lightgray;
+    margin: 5px 5px 0px 5px;
+    padding: 2.5px 15px 2.5px 15px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border: 1px solid darkgray;
+    border-bottom: 0;
+    user-select: none;
+}
+
+#new-tab {
+    background-color: #ddd;
+    border: 0;
+    color: darkgray;
+}
+
+.tab:hover {
+    background-color: #ddd;
+}
+
+.tab:active, .tab.selected {
+    background-color: white;
+}
+
+#new-tab:hover {
+    color: dimgray;
+    background-color: lightgray;
+}
+
 #header {
     border-bottom: 1px solid dimgray;
     background-color: hsl(120, 25%, 50%);
@@ -139,16 +169,17 @@ textarea.field {
     font-size: 16px;
 }
 
+#tabs {
+    background-color: #ddd;
+    border-bottom: 1px solid darkgray;
+}
+
 #container {
     flex: 1 1 0;
     font-family: monospace;
     font-size: 12px;
     background-color: #c0c0c0;
     overflow-y: auto;
-}
-
-#container::before {
-    content: "Memory Map";
 }
 
 #details {
