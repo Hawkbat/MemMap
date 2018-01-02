@@ -24,16 +24,24 @@ html, body {
 }
 
 .field {
-    margin: 5px 5px 10px 5px;
+    border-bottom: 1px solid darkgray;
 }
 
 label.field {
-    margin-bottom: 0px;
+    padding: 5px 5px 0px 5px;
+}
+
+input.field, textarea.field, select.field {
+    padding: 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
 }
 
 textarea.field {
-    height: 50px;
+    height: 100px;
     font-family: inherit;
+    resize: none;
 }
 
 .col > .item ~ .col {
@@ -58,12 +66,19 @@ textarea.field {
 }
 
 .item {
+    flex: 0 0 auto;
     background-color: white;
     border: 1px solid darkgray;
     border-radius: 1ch;
     padding: .5ch 1ch;
     margin: .25ch;
     overflow: hidden;
+}
+
+.item > i:first-child {
+    margin-left: -6px;
+    width: 20px;
+    height: 14px;
 }
 
 .item:hover {
@@ -102,6 +117,16 @@ textarea.field {
     background-color: rgba(0, 0, 0, 0.25);
 }
 
+.tool.disabled {
+    color: #bbb;
+    pointer-events: none;
+}
+
+.tool.disabled:hover, .too.disabled:active {
+    background-color: transparent;
+    cursor: default;
+}
+
 .tool[data-count]::after {
     position: absolute;
     right: -2px;
@@ -126,13 +151,14 @@ textarea.field {
 
 .tab {
     background-color: lightgray;
-    margin: 5px 5px 0px 5px;
+    margin: 4px 5px 0px 5px;
     padding: 2.5px 15px 2.5px 15px;
     border-top-right-radius: 5px;
     border-top-left-radius: 5px;
     border: 1px solid darkgray;
     border-bottom: 0;
     user-select: none;
+    white-space: nowrap;
 }
 
 #new-tab {
@@ -159,6 +185,14 @@ textarea.field {
     background-color: hsl(120, 25%, 50%);
 }
 
+#tabs {
+    background-color: #ddd;
+    border-bottom: 1px solid darkgray;
+    width: 0;
+    min-width: 100%;
+    overflow-x: auto;
+}
+
 #container::before, #details::before, #project::before {
     display: block;
     background-color: #ddd;
@@ -169,21 +203,23 @@ textarea.field {
     font-size: 16px;
 }
 
-#tabs {
-    background-color: #ddd;
-    border-bottom: 1px solid darkgray;
-}
-
 #container {
     flex: 1 1 0;
     font-family: monospace;
     font-size: 12px;
     background-color: #c0c0c0;
-    overflow-y: auto;
+    overflow: auto;
+    width: 0;
+    min-width: 100%;
+}
+
+#details, #project {
+    flex: 0 0 auto;
+    background-color: lightgray;
 }
 
 #details {
-    flex: 0 0 auto;
+    border-left: 1px solid dimgray;
     border-right: 1px solid darkgray;
 }
 
@@ -192,9 +228,8 @@ textarea.field {
 }
 
 #project {
-    flex: 0 0 auto;
-    width: 200px;
     border-left: 1px solid darkgray;
+    border-right: 1px solid dimgray;
 }
 
 #project::before {

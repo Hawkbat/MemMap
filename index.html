@@ -14,10 +14,10 @@
             <div class="spacer"></div>
             <div class="tool" id="tool-cut" title="Cut"><i class="fa fa-cut"></i></div>
             <div class="tool" id="tool-copy" title="Copy"><i class="fa fa-copy"></i></div>
-            <div class="tool" id="tool-paste" title="Paste"><i class="fa fa-paste"></i></div>
+            <div class="tool disabled" id="tool-paste" title="Paste"><i class="fa fa-paste"></i></div>
             <div class="spacer"></div>
-            <div class="tool" id="tool-undo" title="Undo" data-count="0"><i class="fa fa-undo"></i></div>
-            <div class="tool" id="tool-redo" title="Redo" data-count="0"><i class="fa fa-repeat"></i></div>
+            <div class="tool disabled" id="tool-undo" title="Undo" data-count="0"><i class="fa fa-undo"></i></div>
+            <div class="tool disabled" id="tool-redo" title="Redo" data-count="0"><i class="fa fa-repeat"></i></div>
             <div class="spacer"></div>
             <div class="tool" id="tool-add" title="Add"><i class="fa fa-plus"></i></div>
             <div class="tool" id="tool-rem" title="Remove"><i class="fa fa-minus"></i></div>
@@ -38,7 +38,17 @@
                 <div id="tabs" class="row"></div>
                 <div id="container" class="col"></div>
             </div>
-            <div id="project" class="col"></div>
+            <div id="project" class="col">
+                <label class="field">Name</label>
+                <input class="field" type="text" name="name">
+                <label class="field">Digit Type</label>
+                <select class="field" name="digitType">
+                    <option value="0">Hexadecimal</option>
+                    <option value="1">Decimal</option>
+                </select>
+                <label class="field">Padding Digits</label>
+                <input class="field" type="number" name="pad">
+            </div>
         </div>
     </body>
 </html>
