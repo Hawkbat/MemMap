@@ -3,5 +3,11 @@
         "target": "es5",
         "strict": true,
         "strictNullChecks": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "downlevelIteration": true,
+        "module": "amd",
+        "moduleResolution": "node",
+        "outFile": "index.js"
     }
 }

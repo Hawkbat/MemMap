@@ -2,7 +2,7 @@
     <head>
         <link rel="stylesheet" href="fa/css/font-awesome.min.css">
         <link rel="stylesheet" href="stylesheet.css">
-        <script src="main.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.min.js"></script>
     </head>
     <body class="col">
         <div id="header" class="row">
@@ -50,5 +50,9 @@
                 <input class="field" type="number" name="pad">
             </div>
         </div>
+        <script>
+            requirejs.config({ paths: { 'main':'./index' }})
+            requirejs(["main"])
+        </script>
     </body>
 </html>
