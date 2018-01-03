@@ -159,6 +159,26 @@ textarea.field {
     border-bottom: 0;
     user-select: none;
     white-space: nowrap;
+    position: relative;
+}
+
+.tab > i.fa-close {
+    width: 15px;
+    height: 15px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    text-align: center;
+    color: transparent;
+    font-size: 12px;
+}
+
+.tab:hover > i.fa-close {
+    color: darkgray;
+}
+
+.tab:hover > i.fa-close:hover {
+    color: darkred;
 }
 
 #new-tab {
@@ -178,6 +198,26 @@ textarea.field {
 #new-tab:hover {
     color: dimgray;
     background-color: lightgray;
+}
+
+.expander {
+    justify-content: center;
+    align-items: center;
+    width: 10px;
+    border-left: 1px solid dimgray;
+    border-right: 1px solid dimgray;
+    background-color: hsl(120, 25%, 40%);
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.expander:hover {
+    background-color: hsl(120, 25%, 45%);
+}
+
+.hidden {
+    display: none;
 }
 
 #header {
@@ -220,7 +260,6 @@ textarea.field {
 
 #details {
     border-left: 1px solid dimgray;
-    border-right: 1px solid darkgray;
 }
 
 #details::before {
@@ -228,7 +267,6 @@ textarea.field {
 }
 
 #project {
-    border-left: 1px solid darkgray;
     border-right: 1px solid dimgray;
 }
 

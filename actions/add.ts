@@ -1,20 +1,20 @@
-import ed from "../editor"
-import Item from "../item"
-import Action from "./action"
+import { ed } from "../editor"
+import { Item } from "../item"
+import { Action } from "./action"
 
-export default class AddAction extends Action {
+export class AddAction extends Action {
     public item: Item
     public parent: Item
     public src: Item
 
     public constructor(parent?: Item, src?: Item) {
         super()
-        this.parent = (parent === undefined) ? ed.activeTab().root : parent
+        this.parent = (parent === null) ? ed.activeTab().root : parent
         this.src = src
     }
 
     public do(): void {
-        this.item = new Item()
+        this.item = new Item(ed.activeTab())
         this.item.name = `Item ${this.item.id}`
         if (this.src) {
             this.item.copy(this.src)
@@ -34,8 +34,8 @@ export default class AddAction extends Action {
 
     public undo(): void {
         this.item.parent.subs.splice(this.item.parent.subs.indexOf(this.item), 1)
-        this.item.parent = undefined
+        this.item.parent = null
         ed.redraw()
-        ed.select()
+        ed.select(null)
     }
 }

@@ -1,52 +1,36 @@
-import Tab from "./tab"
+import { ed } from "./editor"
 import { DigitType } from "./enums"
-import ed from "./editor"
+import { ITabConfig, Tab } from "./tab"
 
-export default class Project {
-    tabs: Tab[] = []
-    name: string = 'New Project'
-    digitType: DigitType = DigitType.Hexadecimal
-    pad: number = 4
+export interface IProjectConfig {
+    digitType: DigitType
+    name: string
+    pad: number
+    tabs: ITabConfig[]
+}
 
-    dirty: boolean = false
-
-    constructor() {
-        this.setDirty()
-    }
-
-    setDirty(val: boolean = true) {
-        this.dirty = val
-        if (val)
-            document.title = this.name + "* | Memory Mapper"
-        else
-            document.title = this.name + " | Memory Mapper"
-    }
-
-    static deserialize(conf: any): Project {
-        let p = new Project()
+export class Project {
+    public static deserialize(conf: IProjectConfig): Project {
+        const p: Project = new Project(false)
         p.name = conf.name
         p.digitType = conf.digitType
         p.pad = conf.pad
-        p.tabs = conf.tabs.map((t: any) => Tab.deserialize(t))
+        p.tabs = conf.tabs.map((t: ITabConfig) => Tab.deserialize(p, t))
         return p
     }
 
-    serialize() {
-        return { name: this.name, digitType: this.digitType, pad: this.pad, tabs: this.tabs.map(tab => tab.serialize()) }
-    }
-
-    static open() {
-        let n = document.createElement('input')
+    public static open(): void {
+        const n: HTMLInputElement = document.createElement('input')
         n.setAttribute('type', 'file')
         n.setAttribute('accept', '.memmap.json')
-        n.addEventListener('change', e => {
+        n.addEventListener('change', () => {
             if (n.files.length > 0) {
-                let r = new FileReader()
-                r.addEventListener('load', ev => {
+                const r: FileReader = new FileReader()
+                r.addEventListener('load', () => {
                     ed.project = Project.deserialize(JSON.parse(r.result))
                     ed.redraw()
                     ed.updateProjectFields()
-                    ed.project.setDirty(false)
+                    ed.setDirty(false)
                 })
                 r.readAsText(n.files[0], 'utf-8')
             }
@@ -54,12 +38,28 @@ export default class Project {
         n.click()
     }
 
-    save() {
-        let out = JSON.stringify(this.serialize())
-        let a = document.createElement('a')
-        a.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(out))
-        a.setAttribute('download', this.name + '.memmap.json')
+    public digitType: DigitType = DigitType.Hexadecimal
+    public name: string = 'New Project'
+    public pad: number = 4
+    public tabs: Tab[] = []
+
+    public constructor(useDefaults: boolean = true) {
+        if (useDefaults) {
+            // tslint:disable-next-line:no-unused-expression
+            new Tab(this)
+        }
+    }
+
+    public save(): void {
+        const out: string = JSON.stringify(this.serialize())
+        const a: HTMLAnchorElement = document.createElement('a')
+        a.setAttribute('href', `data:application/json;charset=utf-8,${encodeURIComponent(out)}`)
+        a.setAttribute('download', `${this.name}.memmap.json`)
         a.click()
-        this.setDirty(false)
+        ed.setDirty(false)
+    }
+
+    public serialize(): IProjectConfig {
+        return { name: this.name, digitType: this.digitType, pad: this.pad, tabs: this.tabs.map((tab: Tab) => tab.serialize()) }
     }
 }

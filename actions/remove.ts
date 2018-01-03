@@ -1,8 +1,8 @@
-import ed from "../editor"
-import Item from "../item"
-import Action from "./action"
+import { ed } from "../editor"
+import { Item } from "../item"
+import { Action } from "./action"
 
-export default class RemoveAction extends Action {
+export class RemoveAction extends Action {
     public index: number
     public item: Item
     public parent: Item
@@ -16,9 +16,9 @@ export default class RemoveAction extends Action {
         this.parent = this.item.parent
         this.index = this.item.parent.subs.indexOf(this.item)
         this.item.parent.subs.splice(this.index, 1)
-        this.item.parent = undefined
+        this.item.parent = null
         ed.redraw()
-        ed.select()
+        ed.select(null)
     }
 
     public redo(): void {

@@ -1,8 +1,8 @@
-import ed from "../editor"
-import Item from "../item"
-import Action from "./action"
+import { ed } from "../editor"
+import { Item } from "../item"
+import { Action } from "./action"
 
-export default class MoveAction extends Action {
+export class MoveAction extends Action {
     public item: Item
     public newParent: Item
     public oldIndex: number

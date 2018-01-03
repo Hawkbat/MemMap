@@ -4,10 +4,11 @@
         "quotemark": false,
         "semicolon": false,
         "linebreak-style": [true, "CRLF"],
-        "only-arrow-functions": [true, "allow-declarations"],
+        "only-arrow-functions": true,
         "no-inferrable-types": false,
         "newline-before-return": false,
-        "no-default-export": false,
-        "max-line-length": false
+        "max-line-length": false,
+        "prefer-function-over-method": false,
+        "no-null-keyword": false
     }
 }

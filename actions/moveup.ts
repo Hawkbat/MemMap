@@ -1,8 +1,8 @@
-import ed from "../editor"
-import Item from "../item"
-import Action from "./action"
+import { ed } from "../editor"
+import { Item } from "../item"
+import { Action } from "./action"
 
-export default class MoveUpAction extends Action {
+export class MoveUpAction extends Action {
     public index: number
     public item: Item
 

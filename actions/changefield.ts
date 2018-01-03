@@ -1,8 +1,8 @@
-import ed from "../editor"
-import Item from "../item"
-import Action from "./action"
+import { ed } from "../editor"
+import { Item } from "../item"
+import { Action } from "./action"
 
-export default class ChangeFieldAction extends Action {
+export class ChangeFieldAction extends Action {
     public field: string
     public item: Item
     public newValue: string | number
