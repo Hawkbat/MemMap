@@ -1,7 +1,8 @@
-import * as Actions from "./actions"
-import { Item } from "./item"
-import { IProjectConfig, Project } from "./project"
-import { Tab } from "./tab"
+import * as Actions from './actions'
+import { DigitType } from './enums'
+import { Item } from './item'
+import { IProjectConfig, Project } from './project'
+import { Tab } from './tab'
 
 const DEC_RADIX: number = 10
 const AUTOSAVE_INTERVAL: number = 2000
@@ -19,61 +20,132 @@ export class Editor {
 		return this.project.tabs[this.curTab]
 	}
 
-	public addTab(): void {
-		const tab: Tab = new Tab(this.project)
-		this.curTab = this.project.tabs.length - 1
-		this.redraw()
-		this.select(tab.root)
-	}
+	public addExpander(id: string, right: boolean = false): void {
+		const expander: HTMLElement = document.createElement('div')
+		const icon: HTMLElement = document.createElement('i')
+		expander.id = `expander-${id}`
+		expander.classList.add('expander', 'col')
+		icon.classList.add('fa', `fa-chevron-${right ? 'right' : 'left'}`)
+		expander.appendChild(icon)
+		document.getElementById('body').appendChild(expander)
 
-	public autosave(): void {
-		localStorage.setItem('memmap-autosave', JSON.stringify(this.project.serialize()))
-		this.setDirty(false)
-	}
-
-	public bindExpander(id: string): void {
-		const panel: HTMLElement = document.getElementById(id)
-		const expander: HTMLElement = document.getElementById(`expander-${id}`)
-		const icon: HTMLElement = expander.querySelector('i') as HTMLElement
 		expander.addEventListener('click', () => {
+			const panel: HTMLElement = document.getElementById(`fields-${id}`)
 			panel.classList.toggle('hidden')
 			icon.classList.toggle('fa-chevron-left')
 			icon.classList.toggle('fa-chevron-right')
 		})
 	}
 
-	public bindItemField(field: string): void {
-		const input: HTMLInputElement = document.body.querySelector(`#details input[name="${field}"], #details textarea[name="${field}"]`) as HTMLInputElement
-		input.disabled = true
+	public addFieldGroup(id: string): void {
+		const group: HTMLElement = document.createElement('div')
+		group.id = `fields-${id}`
+		group.classList.add('fields', 'col')
+		document.getElementById('body').appendChild(group)
+	}
+
+	public addHeadingField(group: string, label: string): void {
+		const fields: HTMLElement = document.getElementById(`fields-${group}`)
+		const heading: HTMLElement = document.createElement('div')
+		heading.classList.add('field', 'heading')
+		heading.innerText = label
+		fields.appendChild(heading)
+	}
+
+	// tslint:disable-next-line:no-any
+	public addInputField(group: string, field: string, label: string, type: string, obj: () => any): void {
+		const fields: HTMLElement = document.getElementById(`fields-${group}`)
+		const input: HTMLInputElement = document.createElement('input')
+		input.classList.add('field')
+		input.type = type
+		input.name = field
+		if (!!obj()) {
+			// tslint:disable-next-line:no-any
+			input.value = (obj() as any)[field] as string
+		}
+		const labelEle: HTMLElement = document.createElement('label')
+		labelEle.classList.add('field')
+		labelEle.innerText = label
+		fields.appendChild(labelEle)
+		fields.appendChild(input)
+		input.disabled = !obj()
 		input.addEventListener('change', () => {
-			const item: Item = this.selected()
-			if (item) {
-				this.activeTab().do(new Actions.ChangeFieldAction(item, field, (input.type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value))
+			if (!!obj()) {
+				this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, (type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value))
 			}
 		})
 	}
 
-	public bindProjectField(field: string): void {
-		const input: HTMLInputElement | HTMLSelectElement =
-			document.body.querySelector(`#project input[name="${field}"], #project textarea[name="${field}"], #project select[name="${field}"]`) as HTMLInputElement | HTMLSelectElement
-		// tslint:disable-next-line:no-any
-		input.value = (this.project as any)[field]
-		input.addEventListener('change', () => {
+	// tslint:disable-next-line:no-any
+	public addSelectField(group: string, field: string, label: string, options: string[], obj: () => any): void {
+		const fields: HTMLElement = document.getElementById(`fields-${group}`)
+		const select: HTMLSelectElement = document.createElement('select')
+		select.classList.add('field')
+		select.name = field
+		for (let i: number = 0; i < options.length; i ++) {
+			select.add(new Option(options[i], i.toString()))
+		}
+		if (!!obj()) {
 			// tslint:disable-next-line:no-any
-			(this.project as any)[field] = (input.tagName === 'SELECT' || input.type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value
-			this.redraw(true)
-			this.setDirty()
+			select.value = (obj() as any)[field] as string
+		}
+		const labelEle: HTMLElement = document.createElement('label')
+		labelEle.classList.add('field')
+		labelEle.innerText = label
+		fields.appendChild(labelEle)
+		fields.appendChild(select)
+		select.disabled = !obj()
+		select.addEventListener('change', () => {
+			if (!!obj()) {
+				this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, parseInt(select.value, DEC_RADIX)))
+			}
 		})
 	}
 
-	public bindTool(name: string, key: string, action: (item: Item) => void): void {
-		const tool: HTMLElement = document.body.querySelector(`#tool-${name}`) as HTMLElement
+	public addTab(): void {
+		const tab: Tab = new Tab(this.project)
+		this.curTab = this.project.tabs.length - 1
+		this.redraw()
+		this.updateProjectFields()
+		this.select(tab.root)
+	}
+
+	// tslint:disable-next-line:no-any
+	public addTextAreaField(group: string, field: string, label: string, obj: () => any): void {
+		const fields: HTMLElement = document.getElementById(`fields-${group}`)
+		const textarea: HTMLTextAreaElement = document.createElement('textarea')
+		textarea.classList.add('field')
+		textarea.name = field
+		if (!!obj()) {
+			// tslint:disable-next-line:no-any
+			textarea.value = (obj() as any)[field] as string
+		}
+		const labelEle: HTMLElement = document.createElement('label')
+		labelEle.classList.add('field')
+		labelEle.innerText = label
+		fields.appendChild(labelEle)
+		fields.appendChild(textarea)
+		textarea.disabled = !obj()
+		textarea.addEventListener('change', () => {
+			if (!!obj()) {
+				this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, textarea.value))
+			}
+		})
+	}
+
+	public addTool(name: string, title: string, icon: string, key: string, action: (item: Item) => void): void {
+		const tool: HTMLElement = document.querySelector('#header').appendChild(document.createElement('div'))
+		tool.classList.add('tool')
+		tool.id = `tool-${name}`
+		tool.title = `${title}${key ? ` (${key.substr(0, 1).toUpperCase() + key.substr(1)})` : ''}`
+		tool.innerHTML = `<i class="fa fa-${icon}"></i>`
+		tool.dataset.count = '0'
+		// Const tool: HTMLElement = document.body.querySelector(`#tool-${name}`) as HTMLElement
 		tool.addEventListener('click', () => {
 			action(this.selected())
 		})
 
 		if (key) {
-			tool.title = tool.title + ` (${key.substr(0, 1).toUpperCase() + key.substr(1)})`
 			document.addEventListener('keydown', (e: KeyboardEvent) => {
 				if (!document.activeElement || document.activeElement === document.body) {
 					if (e.key === key) {
@@ -85,30 +157,18 @@ export class Editor {
 		}
 	}
 
-	public changeTab(i: number): void {
-		this.curTab = i
-		this.redraw()
-		this.select(this.activeTab().root)
+	public addToolSpacer(): void {
+		const spacer: HTMLDivElement = document.createElement('div')
+		spacer.classList.add('spacer')
+		document.getElementById('header').appendChild(spacer)
 	}
 
-	public closeTab(i: number): void {
-		if ((i === this.curTab && i > 0) || this.curTab === this.project.tabs.length - 1) {
-			this.curTab--
-		}
-		this.project.tabs.splice(i, 1)
-		this.redraw()
-		this.select(this.activeTab().root)
-	}
+	public addWorkspace(): void {
+		const workspace: HTMLElement = document.createElement('div')
+		workspace.classList.add('col', 'expand')
+		workspace.innerHTML = `<div id="workspace" class="col expand"><div id="tabs" class="row"></div><div id="container" class="col"></div></div>`
+		document.getElementById('body').appendChild(workspace)
 
-	public findItemElement(ele: HTMLElement): HTMLElement {
-		let el: HTMLElement = ele
-		while (el && !el.classList.contains('item')) {
-			el = el.parentElement
-		}
-		return el
-	}
-
-	public init(): void {
 		this.container = document.getElementById('container')
 		this.container.addEventListener('click', (e: MouseEvent) => {
 			const ele: HTMLElement = this.findItemElement(e.target as HTMLElement)
@@ -149,7 +209,39 @@ export class Editor {
 				}
 			}
 		})
+	}
 
+	public autosave(): void {
+		localStorage.setItem('memmap-autosave', JSON.stringify(this.project.serialize()))
+		this.setDirty(false)
+	}
+
+	public changeTab(i: number): void {
+		this.curTab = i
+		this.redraw()
+		this.updateProjectFields()
+		this.select(this.activeTab().root)
+	}
+
+	public closeTab(i: number): void {
+		if ((i === this.curTab && i > 0) || this.curTab === this.project.tabs.length - 1) {
+			this.curTab--
+		}
+		this.project.tabs.splice(i, 1)
+		this.redraw()
+		this.updateProjectFields()
+		this.select(this.activeTab().root)
+	}
+
+	public findItemElement(ele: HTMLElement): HTMLElement {
+		let el: HTMLElement = ele
+		while (el && !el.classList.contains('item')) {
+			el = el.parentElement
+		}
+		return el
+	}
+
+	public init(): void {
 		const autosave: string = localStorage.getItem('memmap-autosave')
 		this.project = autosave ? Project.deserialize(JSON.parse(autosave) as IProjectConfig) : new Project()
 		this.autosave()
@@ -158,24 +250,37 @@ export class Editor {
 			this.autosave()
 		})
 
-		this.bindItemField('name')
-		this.bindItemField('desc')
-		this.bindItemField('size')
+		this.addFieldGroup('item')
+		this.addHeadingField('item', 'Details')
+		this.addInputField('item', 'size', 'Size', 'number', () => this.selected())
+		this.addInputField('item', 'name', 'Name', 'text', () => this.selected())
+		this.addTextAreaField('item', 'desc', 'Description', () => this.selected())
+		this.addExpander('item')
 
-		this.bindProjectField('name')
-		this.bindProjectField('digitType')
-		this.bindProjectField('pad')
+		this.addWorkspace()
 
-		this.bindTool('new', 'n', () => {
+		this.addExpander('project', true)
+		this.addFieldGroup('project')
+		this.addHeadingField('project', 'Map')
+		this.addSelectField('project', 'digitType', 'Digit Type', Object.keys(DigitType).filter((v: string) => isNaN(parseInt(v, DEC_RADIX))), () => this.activeTab())
+		this.addInputField('project', 'pad', 'Padding Digits', 'number', () => this.activeTab())
+		this.addHeadingField('project', 'Project')
+		this.addInputField('project', 'name', 'Name', 'text', () => this.project)
+
+		this.addToolSpacer()
+
+		this.addTool('new', 'New Project', 'file', 'n', () => {
 			if (confirm('You will lose all autosaved data if you start a new project. Continue?')) {
 				this.project = new Project()
 				this.redraw()
 			}
 		})
-		this.bindTool('open', 'o', () => Project.open())
-		this.bindTool('save', 's', () => this.project.save())
+		this.addTool('open', 'Open Project', 'folder-open', 'o', () => Project.open())
+		this.addTool('save', 'Download Project', 'download', 's', () => this.project.save())
 
-		this.bindTool('cut', 'x', (item: Item) => {
+		this.addToolSpacer()
+
+		this.addTool('cut', 'Cut', 'cut', 'x', (item: Item) => {
 			if (item && item.parent) {
 				if (this.cbItem) {
 					this.cbItem.copy(item)
@@ -186,7 +291,7 @@ export class Editor {
 				this.setToolEnabled('paste', true)
 			}
 		})
-		this.bindTool('copy', 'c', (item: Item) => {
+		this.addTool('copy', 'Copy', 'copy', 'c', (item: Item) => {
 			if (item) {
 				if (!this.cbItem) {
 					this.cbItem = new Item(ed.activeTab())
@@ -195,22 +300,29 @@ export class Editor {
 				this.setToolEnabled('paste', true)
 			}
 		})
-		this.bindTool('paste', 'v', (item: Item) => {
+		this.addTool('paste', 'Paste', 'paste', 'v', (item: Item) => {
 			if (this.cbItem) {
 				this.activeTab().do(new Actions.AddAction(item, this.cbItem))
 			}
 		})
+		this.setToolEnabled('paste', false)
 
-		this.bindTool('undo', 'z', () => this.activeTab().undo())
-		this.bindTool('redo', 'y', () => this.activeTab().redo())
+		this.addToolSpacer()
 
-		this.bindTool('add', 'Insert', (item: Item) => this.activeTab().do(new Actions.AddAction(item)))
-		this.bindTool('rem', 'Delete', (item: Item) => {
+		this.addTool('undo', 'Undo', 'undo', 'z', () => this.activeTab().undo())
+		this.setToolEnabled('undo', false)
+		this.addTool('redo', 'Redo', 'repeat', 'y', () => this.activeTab().redo())
+		this.setToolEnabled('redo', false)
+
+		this.addToolSpacer()
+
+		this.addTool('add', 'Add Item', 'plus', 'Insert', (item: Item) => this.activeTab().do(new Actions.AddAction(item)))
+		this.addTool('rem', 'Remove Item', 'minus', 'Delete', (item: Item) => {
 			if (item && item.parent) {
 				this.activeTab().do(new Actions.RemoveAction(item))
 			}
 		})
-		this.bindTool('up', 'u', (item: Item) => {
+		this.addTool('up', 'Move Up', 'arrow-up', 'Home', (item: Item) => {
 			if (item && item.parent) {
 				const index: number = item.parent.subs.indexOf(item)
 				if (index > 0) {
@@ -218,7 +330,7 @@ export class Editor {
 				}
 			}
 		})
-		this.bindTool('down', 'j', (item: Item) => {
+		this.addTool('down', 'Move Down', 'arrow-down', 'End', (item: Item) => {
 			if (item && item.parent) {
 				const index: number = item.parent.subs.indexOf(item)
 				if (index < item.parent.subs.length - 1) {
@@ -227,58 +339,62 @@ export class Editor {
 			}
 		})
 
+		this.addToolSpacer()
+
+		// tslint:disable-next-line:cyclomatic-complexity
 		window.addEventListener('keydown', (e: KeyboardEvent) => {
 			const sel: Item = this.selected()
 			if (sel && (!document.activeElement || document.activeElement === document.body)) {
 				let index: number = sel.parent ? sel.parent.subs.indexOf(sel) : -1
-				if (e.key === 'ArrowUp') {
-					if (index === 0) {
-						this.select(sel.parent)
-					} else if (index > 0) {
-						let item = sel.parent.subs[index - 1]
-						while (item.open && item.subs.length > 0) {
-							item = item.subs[item.subs.length - 1]
-						}
-						this.select(item)
-					}
-				} else if (e.key === 'ArrowLeft') {
-					if (sel.subs.length > 0 && sel.open) {
-						sel.open = false
-						this.redraw(true)
-					} else if (sel.parent) {
-						this.select(sel.parent)
-					}
-				} else if (e.key === 'ArrowRight') {
-					if (sel.subs.length > 0 && !sel.open) {
-						sel.open = true
-						this.redraw(true)
-					} else if (sel.subs.length > 0) {
-						this.select(sel.subs[0])
-					}
-				} else if (e.key === 'ArrowDown') {
-					if (sel.subs.length > 0 && sel.open) {
-						this.select(sel.subs[0])
-					} else if (sel.parent && index < sel.parent.subs.length - 1) {
-						this.select(sel.parent.subs[index + 1])
-					} else if (sel.parent) {
-						// Loop up until an item with a sibling is found
-						let item = sel
-						while (item.parent && index === item.parent.subs.length - 1) {
-							item = item.parent
-							index = item.parent ? item.parent.subs.indexOf(item) : -1
-						}
-						if (item && index >= 0) {
-							item = item.parent.subs[index + 1]
-							//while (item.subs.length > 0) item = item.subs[0]
+				switch (e.key) {
+					case 'ArrowUp':
+						if (index === 0) {
+							this.select(sel.parent)
+						} else if (index > 0) {
+							let item: Item = sel.parent.subs[index - 1]
+							while (item.open && item.subs.length > 0) {
+								item = item.subs[item.subs.length - 1]
+							}
 							this.select(item)
 						}
-					}
+						break
+					case 'ArrowLeft':
+						if (sel.subs.length > 0 && sel.open) {
+							sel.open = false
+							this.redraw(true)
+						} else if (sel.parent) {
+							this.select(sel.parent)
+						}
+						break
+					case 'ArrowRight':
+						if (sel.subs.length > 0 && !sel.open) {
+							sel.open = true
+							this.redraw(true)
+						} else if (sel.subs.length > 0) {
+							this.select(sel.subs[0])
+						}
+						break
+					case 'ArrowDown':
+						if (sel.subs.length > 0 && sel.open) {
+							this.select(sel.subs[0])
+						} else if (sel.parent && index < sel.parent.subs.length - 1) {
+							this.select(sel.parent.subs[index + 1])
+						} else if (sel.parent) {
+							let item: Item = sel
+							while (item.parent && index === item.parent.subs.length - 1) {
+								item = item.parent
+								index = item.parent ? item.parent.subs.indexOf(item) : -1
+							}
+							if (item && index >= 0) {
+								item = item.parent.subs[index + 1]
+								this.select(item)
+							}
+						}
+						break
+					default:
 				}
 			}
 		})
-
-		this.bindExpander('details')
-		this.bindExpander('project')
 
 		this.redraw()
 		this.select(this.activeTab().root)
@@ -295,9 +411,9 @@ export class Editor {
 	}
 
 	public select(item?: Item): void {
-		this.setItemField('size', item)
-		this.setItemField('name', item)
-		this.setItemField('desc', item)
+		this.setFieldValue('item', 'size', item)
+		this.setFieldValue('item', 'name', item)
+		this.setFieldValue('item', 'desc', item)
 
 		const allEles: NodeListOf<Element> = document.body.querySelectorAll('.item')
 		for (const ele of allEles) {
@@ -317,9 +433,11 @@ export class Editor {
 	}
 
 	public selected(): Item {
-		const selEle: HTMLElement = this.container.querySelector('.item.selected') as HTMLElement
-		if (selEle) {
-			return this.activeTab().items[parseInt(selEle.dataset.id, DEC_RADIX)]
+		if (this.container) {
+			const selEle: HTMLElement = this.container.querySelector('.item.selected') as HTMLElement
+			if (selEle) {
+				return this.activeTab().items[parseInt(selEle.dataset.id, DEC_RADIX)]
+			}
 		}
 		return null
 	}
@@ -335,11 +453,14 @@ export class Editor {
 		}
 	}
 
-	public setItemField(field: string, item: Item): void {
-		const input: HTMLInputElement = document.body.querySelector(`#details input[name="${field}"], #details textarea[name="${field}"]`) as HTMLInputElement
-		input.disabled = !item
+	// tslint:disable-next-line:no-any
+	public setFieldValue(group: string, field: string, obj: any): void {
+		const input: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement =
+			document.body.querySelector(`#fields-${group} input[name="${field}"], #fields-${group} textarea[name="${field}"], #fields-${group} select[name="${field}"]`) as
+			HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+		input.disabled = !obj
 		// tslint:disable-next-line:no-any
-		input.value = item ? (item as any)[field] : ''
+		input.value = obj ? (obj as any)[field] : ''
 	}
 
 	public setToolEnabled(name: string, enabled: boolean): void {
@@ -362,9 +483,9 @@ export class Editor {
 	}
 
 	public updateProjectFields(): void {
-		(document.body.querySelector('#project input[name="name"]') as HTMLInputElement).value = this.project.name;
-		(document.body.querySelector('#project select[name="digitType"]') as HTMLSelectElement).value = this.project.digitType.toString();
-		(document.body.querySelector('#project input[name="pad"]') as HTMLInputElement).value = this.project.pad.toString();
+		(document.body.querySelector('#fields-project input[name="name"]') as HTMLInputElement).value = this.project.name;
+		(document.body.querySelector('#fields-project select[name="digitType"]') as HTMLSelectElement).value = this.activeTab().digitType.toString();
+		(document.body.querySelector('#fields-project input[name="pad"]') as HTMLInputElement).value = this.activeTab().pad.toString();
 	}
 
 	public updateTabs(): void {

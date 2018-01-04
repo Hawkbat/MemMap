@@ -1,7 +1,7 @@
 {
     "extends": "tslint:all",
     "rules": {
-        "quotemark": false,
+        "quotemark": [true, "single"],
         "semicolon": false,
         "linebreak-style": [true, "CRLF"],
         "only-arrow-functions": true,
@@ -9,6 +9,8 @@
         "newline-before-return": false,
         "max-line-length": false,
         "prefer-function-over-method": false,
-        "no-null-keyword": false
+        "no-null-keyword": false,
+		"indent": [true, "tabs"],
+		"align": false
     }
 }

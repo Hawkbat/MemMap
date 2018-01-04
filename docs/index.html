@@ -1,6 +1,7 @@
 <html>
 
 <head>
+	<meta charset="utf-8">
 	<link rel="stylesheet" href="fa/css/font-awesome.min.css">
 	<link rel="stylesheet" href="stylesheet.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.5/require.min.js"></script>
@@ -8,79 +9,14 @@
 
 <body class="col">
 	<div id="header" class="row">
-		<a href="/" class="logo">Memory Mapper</a>
-		<div class="spacer"></div>
-		<div class="tool" id="tool-new" title="New">
-			<i class="fa fa-file"></i>
-		</div>
-		<div class="tool" id="tool-open" title="Open">
-			<i class="fa fa-folder-open"></i>
-		</div>
-		<div class="tool" id="tool-save" title="Save">
-			<i class="fa fa-download"></i>
-		</div>
-		<div class="spacer"></div>
-		<div class="tool" id="tool-cut" title="Cut">
-			<i class="fa fa-cut"></i>
-		</div>
-		<div class="tool" id="tool-copy" title="Copy">
-			<i class="fa fa-copy"></i>
-		</div>
-		<div class="tool disabled" id="tool-paste" title="Paste">
-			<i class="fa fa-paste"></i>
-		</div>
-		<div class="spacer"></div>
-		<div class="tool disabled" id="tool-undo" title="Undo" data-count="0">
-			<i class="fa fa-undo"></i>
-		</div>
-		<div class="tool disabled" id="tool-redo" title="Redo" data-count="0">
-			<i class="fa fa-repeat"></i>
-		</div>
-		<div class="spacer"></div>
-		<div class="tool" id="tool-add" title="Add">
-			<i class="fa fa-plus"></i>
-		</div>
-		<div class="tool" id="tool-rem" title="Remove">
-			<i class="fa fa-minus"></i>
-		</div>
-		<div class="tool" id="tool-up" title="Move Up">
-			<i class="fa fa-arrow-up"></i>
-		</div>
-		<div class="tool" id="tool-down" title="Move Down">
-			<i class="fa fa-arrow-down"></i>
-		</div>
-		<div class="spacer"></div>
+		<a href="." class="logo">Memory Mapper</a>
 	</div>
-	<div class="row expand">
-		<div id="details" class="col">
-			<label class="field">Size</label>
-			<input class="field" type="number" name="size">
-			<label class="field">Name</label>
-			<input class="field" type="text" name="name">
-			<label class="field">Description</label>
-			<textarea class="field" name="desc"></textarea>
-		</div>
-		<div id="expander-details" class="col expander">
-			<i class="fa fa-chevron-left"></i>
-		</div>
-		<div class="col expand">
-			<div id="tabs" class="row"></div>
-			<div id="container" class="col"></div>
-		</div>
-		<div id="expander-project" class="col expander">
-			<i class="fa fa-chevron-right"></i>
-		</div>
-		<div id="project" class="col">
-			<label class="field">Name</label>
-			<input class="field" type="text" name="name">
-			<label class="field">Digit Type</label>
-			<select class="field" name="digitType">
-				<option value="0">Hexadecimal</option>
-				<option value="1">Decimal</option>
-			</select>
-			<label class="field">Padding Digits</label>
-			<input class="field" type="number" name="pad">
-		</div>
+	<div id="body" class="row expand">
+		
+	</div>
+	<div id="footer" class="row">
+		<div class="expand"></div>
+		<div>© 2018 First Figure</div>
 	</div>
 	<script>
 		requirejs.config({ paths: { 'main': './index' } })

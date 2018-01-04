@@ -27,15 +27,13 @@ define("enums", ["require", "exports"], function (require, exports) {
         DigitType[DigitType["Decimal"] = 1] = "Decimal";
     })(DigitType = exports.DigitType || (exports.DigitType = {}));
 });
-define("project", ["require", "exports", "editor", "enums", "tab"], function (require, exports, editor_1, enums_1, tab_1) {
+define("project", ["require", "exports", "editor", "tab"], function (require, exports, editor_1, tab_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var Project = /** @class */ (function () {
         function Project(useDefaults) {
             if (useDefaults === void 0) { useDefaults = true; }
-            this.digitType = enums_1.DigitType.Hexadecimal;
             this.name = 'New Project';
-            this.pad = 4;
             this.tabs = [];
             if (useDefaults) {
                 // tslint:disable-next-line:no-unused-expression
@@ -45,8 +43,6 @@ define("project", ["require", "exports", "editor", "enums", "tab"], function (re
         Project.deserialize = function (conf) {
             var p = new Project(false);
             p.name = conf.name;
-            p.digitType = conf.digitType;
-            p.pad = conf.pad;
             p.tabs = conf.tabs.map(function (t) { return tab_1.Tab.deserialize(p, t); });
             return p;
         };
@@ -77,19 +73,21 @@ define("project", ["require", "exports", "editor", "enums", "tab"], function (re
             editor_1.ed.setDirty(false);
         };
         Project.prototype.serialize = function () {
-            return { name: this.name, digitType: this.digitType, pad: this.pad, tabs: this.tabs.map(function (tab) { return tab.serialize(); }) };
+            return { name: this.name, tabs: this.tabs.map(function (tab) { return tab.serialize(); }) };
         };
         return Project;
     }());
     exports.Project = Project;
 });
-define("tab", ["require", "exports", "editor", "item"], function (require, exports, editor_2, item_1) {
+define("tab", ["require", "exports", "editor", "enums", "item"], function (require, exports, editor_2, enums_1, item_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var DEFAULT_MAP_SIZE = 0x10000;
     var Tab = /** @class */ (function () {
         function Tab(project, itemConf) {
+            this.digitType = enums_1.DigitType.Hexadecimal;
             this.items = [];
+            this.pad = 4;
             this.redos = [];
             this.undos = [];
             this.project = project;
@@ -97,7 +95,9 @@ define("tab", ["require", "exports", "editor", "item"], function (require, expor
             this.root = itemConf ? item_1.Item.deserialize(this, itemConf) : new item_1.Item(this, DEFAULT_MAP_SIZE, "Map " + this.project.tabs.length, '');
         }
         Tab.deserialize = function (project, conf) {
-            var t = new Tab(project, conf);
+            var t = new Tab(project, conf.root);
+            t.digitType = conf.digitType;
+            t.pad = conf.pad;
             return t;
         };
         Tab.prototype.do = function (act) {
@@ -121,7 +121,7 @@ define("tab", ["require", "exports", "editor", "item"], function (require, expor
             }
         };
         Tab.prototype.serialize = function () {
-            return this.root.serialize();
+            return { digitType: this.digitType, pad: this.pad, root: this.root.serialize() };
         };
         Tab.prototype.undo = function () {
             if (this.undos.length > 0) {
@@ -228,16 +228,16 @@ define("item", ["require", "exports", "editor", "enums"], function (require, exp
             return { size: this.size, name: this.name, desc: this.desc, subs: this.subs.map(function (v) { return v.serialize(); }) };
         };
         Item.prototype.formatNum = function (num) {
-            if (editor_3.ed.project.digitType === enums_2.DigitType.Hexadecimal) {
+            if (editor_3.ed.activeTab().digitType === enums_2.DigitType.Hexadecimal) {
                 var str = num.toString(HEX_RADIX).toUpperCase();
-                while (str.length < editor_3.ed.project.pad || (str.length % ODD_MOD) === 1) {
+                while (str.length < editor_3.ed.activeTab().pad || (str.length % ODD_MOD) === 1) {
                     str = "0" + str;
                 }
                 return "0x" + str;
             }
-            else if (editor_3.ed.project.digitType === enums_2.DigitType.Decimal) {
+            else if (editor_3.ed.activeTab().digitType === enums_2.DigitType.Decimal) {
                 var str = num.toString();
-                while (str.length < editor_3.ed.project.pad) {
+                while (str.length < editor_3.ed.activeTab().pad) {
                     str = "0" + str;
                 }
                 return str;
@@ -285,34 +285,42 @@ define("actions/add", ["require", "exports", "editor", "item", "actions/action"]
     }(action_1.Action));
     exports.AddAction = AddAction;
 });
-define("actions/changefield", ["require", "exports", "editor", "actions/action"], function (require, exports, editor_5, action_2) {
+define("actions/changefield", ["require", "exports", "editor", "item", "actions/action"], function (require, exports, editor_5, item_3, action_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var ChangeFieldAction = /** @class */ (function (_super) {
         __extends(ChangeFieldAction, _super);
-        function ChangeFieldAction(item, field, value) {
+        // tslint:disable-next-line:no-any
+        function ChangeFieldAction(obj, group, field, value) {
             var _this = _super.call(this) || this;
-            _this.item = item;
+            _this.obj = obj;
+            _this.group = group;
             _this.field = field;
             // tslint:disable-next-line:no-any
-            _this.oldValue = _this.item[field];
+            _this.oldValue = _this.obj[field];
             _this.newValue = value;
             return _this;
         }
         ChangeFieldAction.prototype.do = function () {
             // tslint:disable-next-line:no-any
-            this.item[this.field] = this.newValue;
+            this.obj[this.field] = this.newValue;
+            editor_5.ed.setFieldValue(this.group, this.field, this.obj);
             editor_5.ed.redraw();
-            editor_5.ed.select(this.item);
+            if (this.obj instanceof item_3.Item) {
+                editor_5.ed.select(this.obj);
+            }
         };
         ChangeFieldAction.prototype.redo = function () {
             this.do();
         };
         ChangeFieldAction.prototype.undo = function () {
             // tslint:disable-next-line:no-any
-            this.item[this.field] = this.oldValue;
+            this.obj[this.field] = this.oldValue;
+            editor_5.ed.setFieldValue(this.group, this.field, this.obj);
             editor_5.ed.redraw();
-            editor_5.ed.select(this.item);
+            if (this.obj instanceof item_3.Item) {
+                editor_5.ed.select(this.obj);
+            }
         };
         return ChangeFieldAction;
     }(action_2.Action));
@@ -457,7 +465,7 @@ define("actions/index", ["require", "exports", "actions/action", "actions/add", 
     __export(moveup_1);
     __export(remove_1);
 });
-define("editor", ["require", "exports", "actions/index", "item", "project", "tab"], function (require, exports, Actions, item_3, project_1, tab_2) {
+define("editor", ["require", "exports", "actions/index", "enums", "item", "project", "tab"], function (require, exports, Actions, enums_3, item_4, project_1, tab_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var DEC_RADIX = 10;
@@ -470,57 +478,128 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
         Editor.prototype.activeTab = function () {
             return this.project.tabs[this.curTab];
         };
-        Editor.prototype.addTab = function () {
-            var tab = new tab_2.Tab(this.project);
-            this.curTab = this.project.tabs.length - 1;
-            this.redraw();
-            this.select(tab.root);
-        };
-        Editor.prototype.autosave = function () {
-            localStorage.setItem('memmap-autosave', JSON.stringify(this.project.serialize()));
-            this.setDirty(false);
-        };
-        Editor.prototype.bindExpander = function (id) {
-            var panel = document.getElementById(id);
-            var expander = document.getElementById("expander-" + id);
-            var icon = expander.querySelector('i');
+        Editor.prototype.addExpander = function (id, right) {
+            if (right === void 0) { right = false; }
+            var expander = document.createElement('div');
+            var icon = document.createElement('i');
+            expander.id = "expander-" + id;
+            expander.classList.add('expander', 'col');
+            icon.classList.add('fa', "fa-chevron-" + (right ? 'right' : 'left'));
+            expander.appendChild(icon);
+            document.getElementById('body').appendChild(expander);
             expander.addEventListener('click', function () {
+                var panel = document.getElementById("fields-" + id);
                 panel.classList.toggle('hidden');
                 icon.classList.toggle('fa-chevron-left');
                 icon.classList.toggle('fa-chevron-right');
             });
         };
-        Editor.prototype.bindItemField = function (field) {
+        Editor.prototype.addFieldGroup = function (id) {
+            var group = document.createElement('div');
+            group.id = "fields-" + id;
+            group.classList.add('fields', 'col');
+            document.getElementById('body').appendChild(group);
+        };
+        Editor.prototype.addHeadingField = function (group, label) {
+            var fields = document.getElementById("fields-" + group);
+            var heading = document.createElement('div');
+            heading.classList.add('field', 'heading');
+            heading.innerText = label;
+            fields.appendChild(heading);
+        };
+        // tslint:disable-next-line:no-any
+        Editor.prototype.addInputField = function (group, field, label, type, obj) {
             var _this = this;
-            var input = document.body.querySelector("#details input[name=\"" + field + "\"], #details textarea[name=\"" + field + "\"]");
-            input.disabled = true;
+            var fields = document.getElementById("fields-" + group);
+            var input = document.createElement('input');
+            input.classList.add('field');
+            input.type = type;
+            input.name = field;
+            if (!!obj()) {
+                // tslint:disable-next-line:no-any
+                input.value = obj()[field];
+            }
+            var labelEle = document.createElement('label');
+            labelEle.classList.add('field');
+            labelEle.innerText = label;
+            fields.appendChild(labelEle);
+            fields.appendChild(input);
+            input.disabled = !obj();
             input.addEventListener('change', function () {
-                var item = _this.selected();
-                if (item) {
-                    _this.activeTab().do(new Actions.ChangeFieldAction(item, field, (input.type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value));
+                if (!!obj()) {
+                    _this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, (type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value));
                 }
             });
         };
-        Editor.prototype.bindProjectField = function (field) {
+        // tslint:disable-next-line:no-any
+        Editor.prototype.addSelectField = function (group, field, label, options, obj) {
             var _this = this;
-            var input = document.body.querySelector("#project input[name=\"" + field + "\"], #project textarea[name=\"" + field + "\"], #project select[name=\"" + field + "\"]");
-            // tslint:disable-next-line:no-any
-            input.value = this.project[field];
-            input.addEventListener('change', function () {
+            var fields = document.getElementById("fields-" + group);
+            var select = document.createElement('select');
+            select.classList.add('field');
+            select.name = field;
+            for (var i = 0; i < options.length; i++) {
+                select.add(new Option(options[i], i.toString()));
+            }
+            if (!!obj()) {
                 // tslint:disable-next-line:no-any
-                _this.project[field] = (input.tagName === 'SELECT' || input.type === 'number') ? parseInt(input.value, DEC_RADIX) : input.value;
-                _this.redraw(true);
-                _this.setDirty();
+                select.value = obj()[field];
+            }
+            var labelEle = document.createElement('label');
+            labelEle.classList.add('field');
+            labelEle.innerText = label;
+            fields.appendChild(labelEle);
+            fields.appendChild(select);
+            select.disabled = !obj();
+            select.addEventListener('change', function () {
+                if (!!obj()) {
+                    _this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, parseInt(select.value, DEC_RADIX)));
+                }
             });
         };
-        Editor.prototype.bindTool = function (name, key, action) {
+        Editor.prototype.addTab = function () {
+            var tab = new tab_2.Tab(this.project);
+            this.curTab = this.project.tabs.length - 1;
+            this.redraw();
+            this.updateProjectFields();
+            this.select(tab.root);
+        };
+        // tslint:disable-next-line:no-any
+        Editor.prototype.addTextAreaField = function (group, field, label, obj) {
             var _this = this;
-            var tool = document.body.querySelector("#tool-" + name);
+            var fields = document.getElementById("fields-" + group);
+            var textarea = document.createElement('textarea');
+            textarea.classList.add('field');
+            textarea.name = field;
+            if (!!obj()) {
+                // tslint:disable-next-line:no-any
+                textarea.value = obj()[field];
+            }
+            var labelEle = document.createElement('label');
+            labelEle.classList.add('field');
+            labelEle.innerText = label;
+            fields.appendChild(labelEle);
+            fields.appendChild(textarea);
+            textarea.disabled = !obj();
+            textarea.addEventListener('change', function () {
+                if (!!obj()) {
+                    _this.activeTab().do(new Actions.ChangeFieldAction(obj(), group, field, textarea.value));
+                }
+            });
+        };
+        Editor.prototype.addTool = function (name, title, icon, key, action) {
+            var _this = this;
+            var tool = document.querySelector('#header').appendChild(document.createElement('div'));
+            tool.classList.add('tool');
+            tool.id = "tool-" + name;
+            tool.title = "" + title + (key ? " (" + (key.substr(0, 1).toUpperCase() + key.substr(1)) + ")" : '');
+            tool.innerHTML = "<i class=\"fa fa-" + icon + "\"></i>";
+            tool.dataset.count = '0';
+            // Const tool: HTMLElement = document.body.querySelector(`#tool-${name}`) as HTMLElement
             tool.addEventListener('click', function () {
                 action(_this.selected());
             });
             if (key) {
-                tool.title = tool.title + (" (" + (key.substr(0, 1).toUpperCase() + key.substr(1)) + ")");
                 document.addEventListener('keydown', function (e) {
                     if (!document.activeElement || document.activeElement === document.body) {
                         if (e.key === key) {
@@ -531,28 +610,17 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                 });
             }
         };
-        Editor.prototype.changeTab = function (i) {
-            this.curTab = i;
-            this.redraw();
-            this.select(this.activeTab().root);
+        Editor.prototype.addToolSpacer = function () {
+            var spacer = document.createElement('div');
+            spacer.classList.add('spacer');
+            document.getElementById('header').appendChild(spacer);
         };
-        Editor.prototype.closeTab = function (i) {
-            if ((i === this.curTab && i > 0) || this.curTab === this.project.tabs.length - 1) {
-                this.curTab--;
-            }
-            this.project.tabs.splice(i, 1);
-            this.redraw();
-            this.select(this.activeTab().root);
-        };
-        Editor.prototype.findItemElement = function (ele) {
-            var el = ele;
-            while (el && !el.classList.contains('item')) {
-                el = el.parentElement;
-            }
-            return el;
-        };
-        Editor.prototype.init = function () {
+        Editor.prototype.addWorkspace = function () {
             var _this = this;
+            var workspace = document.createElement('div');
+            workspace.classList.add('col', 'expand');
+            workspace.innerHTML = "<div id=\"workspace\" class=\"col expand\"><div id=\"tabs\" class=\"row\"></div><div id=\"container\" class=\"col\"></div></div>";
+            document.getElementById('body').appendChild(workspace);
             this.container = document.getElementById('container');
             this.container.addEventListener('click', function (e) {
                 var ele = _this.findItemElement(e.target);
@@ -595,27 +663,66 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                     }
                 }
             });
+        };
+        Editor.prototype.autosave = function () {
+            localStorage.setItem('memmap-autosave', JSON.stringify(this.project.serialize()));
+            this.setDirty(false);
+        };
+        Editor.prototype.changeTab = function (i) {
+            this.curTab = i;
+            this.redraw();
+            this.updateProjectFields();
+            this.select(this.activeTab().root);
+        };
+        Editor.prototype.closeTab = function (i) {
+            if ((i === this.curTab && i > 0) || this.curTab === this.project.tabs.length - 1) {
+                this.curTab--;
+            }
+            this.project.tabs.splice(i, 1);
+            this.redraw();
+            this.updateProjectFields();
+            this.select(this.activeTab().root);
+        };
+        Editor.prototype.findItemElement = function (ele) {
+            var el = ele;
+            while (el && !el.classList.contains('item')) {
+                el = el.parentElement;
+            }
+            return el;
+        };
+        Editor.prototype.init = function () {
+            var _this = this;
             var autosave = localStorage.getItem('memmap-autosave');
             this.project = autosave ? project_1.Project.deserialize(JSON.parse(autosave)) : new project_1.Project();
             this.autosave();
             window.addEventListener('beforeunload', function () {
                 _this.autosave();
             });
-            this.bindItemField('name');
-            this.bindItemField('desc');
-            this.bindItemField('size');
-            this.bindProjectField('name');
-            this.bindProjectField('digitType');
-            this.bindProjectField('pad');
-            this.bindTool('new', 'n', function () {
+            this.addFieldGroup('item');
+            this.addHeadingField('item', 'Details');
+            this.addInputField('item', 'size', 'Size', 'number', function () { return _this.selected(); });
+            this.addInputField('item', 'name', 'Name', 'text', function () { return _this.selected(); });
+            this.addTextAreaField('item', 'desc', 'Description', function () { return _this.selected(); });
+            this.addExpander('item');
+            this.addWorkspace();
+            this.addExpander('project', true);
+            this.addFieldGroup('project');
+            this.addHeadingField('project', 'Map');
+            this.addSelectField('project', 'digitType', 'Digit Type', Object.keys(enums_3.DigitType).filter(function (v) { return isNaN(parseInt(v, DEC_RADIX)); }), function () { return _this.activeTab(); });
+            this.addInputField('project', 'pad', 'Padding Digits', 'number', function () { return _this.activeTab(); });
+            this.addHeadingField('project', 'Project');
+            this.addInputField('project', 'name', 'Name', 'text', function () { return _this.project; });
+            this.addToolSpacer();
+            this.addTool('new', 'New Project', 'file', 'n', function () {
                 if (confirm('You will lose all autosaved data if you start a new project. Continue?')) {
                     _this.project = new project_1.Project();
                     _this.redraw();
                 }
             });
-            this.bindTool('open', 'o', function () { return project_1.Project.open(); });
-            this.bindTool('save', 's', function () { return _this.project.save(); });
-            this.bindTool('cut', 'x', function (item) {
+            this.addTool('open', 'Open Project', 'folder-open', 'o', function () { return project_1.Project.open(); });
+            this.addTool('save', 'Download Project', 'download', 's', function () { return _this.project.save(); });
+            this.addToolSpacer();
+            this.addTool('cut', 'Cut', 'cut', 'x', function (item) {
                 if (item && item.parent) {
                     if (_this.cbItem) {
                         _this.cbItem.copy(item);
@@ -627,29 +734,34 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                     _this.setToolEnabled('paste', true);
                 }
             });
-            this.bindTool('copy', 'c', function (item) {
+            this.addTool('copy', 'Copy', 'copy', 'c', function (item) {
                 if (item) {
                     if (!_this.cbItem) {
-                        _this.cbItem = new item_3.Item(exports.ed.activeTab());
+                        _this.cbItem = new item_4.Item(exports.ed.activeTab());
                     }
                     _this.cbItem.copy(item);
                     _this.setToolEnabled('paste', true);
                 }
             });
-            this.bindTool('paste', 'v', function (item) {
+            this.addTool('paste', 'Paste', 'paste', 'v', function (item) {
                 if (_this.cbItem) {
                     _this.activeTab().do(new Actions.AddAction(item, _this.cbItem));
                 }
             });
-            this.bindTool('undo', 'z', function () { return _this.activeTab().undo(); });
-            this.bindTool('redo', 'y', function () { return _this.activeTab().redo(); });
-            this.bindTool('add', 'Insert', function (item) { return _this.activeTab().do(new Actions.AddAction(item)); });
-            this.bindTool('rem', 'Delete', function (item) {
+            this.setToolEnabled('paste', false);
+            this.addToolSpacer();
+            this.addTool('undo', 'Undo', 'undo', 'z', function () { return _this.activeTab().undo(); });
+            this.setToolEnabled('undo', false);
+            this.addTool('redo', 'Redo', 'repeat', 'y', function () { return _this.activeTab().redo(); });
+            this.setToolEnabled('redo', false);
+            this.addToolSpacer();
+            this.addTool('add', 'Add Item', 'plus', 'Insert', function (item) { return _this.activeTab().do(new Actions.AddAction(item)); });
+            this.addTool('rem', 'Remove Item', 'minus', 'Delete', function (item) {
                 if (item && item.parent) {
                     _this.activeTab().do(new Actions.RemoveAction(item));
                 }
             });
-            this.bindTool('up', 'u', function (item) {
+            this.addTool('up', 'Move Up', 'arrow-up', 'Home', function (item) {
                 if (item && item.parent) {
                     var index = item.parent.subs.indexOf(item);
                     if (index > 0) {
@@ -657,7 +769,7 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                     }
                 }
             });
-            this.bindTool('down', 'j', function (item) {
+            this.addTool('down', 'Move Down', 'arrow-down', 'End', function (item) {
                 if (item && item.parent) {
                     var index = item.parent.subs.indexOf(item);
                     if (index < item.parent.subs.length - 1) {
@@ -665,65 +777,66 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                     }
                 }
             });
+            this.addToolSpacer();
+            // tslint:disable-next-line:cyclomatic-complexity
             window.addEventListener('keydown', function (e) {
                 var sel = _this.selected();
                 if (sel && (!document.activeElement || document.activeElement === document.body)) {
                     var index = sel.parent ? sel.parent.subs.indexOf(sel) : -1;
-                    if (e.key === 'ArrowUp') {
-                        if (index === 0) {
-                            _this.select(sel.parent);
-                        }
-                        else if (index > 0) {
-                            var item = sel.parent.subs[index - 1];
-                            while (item.open && item.subs.length > 0) {
-                                item = item.subs[item.subs.length - 1];
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            if (index === 0) {
+                                _this.select(sel.parent);
                             }
-                            _this.select(item);
-                        }
-                    }
-                    else if (e.key === 'ArrowLeft') {
-                        if (sel.subs.length > 0 && sel.open) {
-                            sel.open = false;
-                            _this.redraw(true);
-                        }
-                        else if (sel.parent) {
-                            _this.select(sel.parent);
-                        }
-                    }
-                    else if (e.key === 'ArrowRight') {
-                        if (sel.subs.length > 0 && !sel.open) {
-                            sel.open = true;
-                            _this.redraw(true);
-                        }
-                        else if (sel.subs.length > 0) {
-                            _this.select(sel.subs[0]);
-                        }
-                    }
-                    else if (e.key === 'ArrowDown') {
-                        if (sel.subs.length > 0 && sel.open) {
-                            _this.select(sel.subs[0]);
-                        }
-                        else if (sel.parent && index < sel.parent.subs.length - 1) {
-                            _this.select(sel.parent.subs[index + 1]);
-                        }
-                        else if (sel.parent) {
-                            // Loop up until an item with a sibling is found
-                            var item = sel;
-                            while (item.parent && index === item.parent.subs.length - 1) {
-                                item = item.parent;
-                                index = item.parent ? item.parent.subs.indexOf(item) : -1;
-                            }
-                            if (item && index >= 0) {
-                                item = item.parent.subs[index + 1];
-                                //while (item.subs.length > 0) item = item.subs[0]
+                            else if (index > 0) {
+                                var item = sel.parent.subs[index - 1];
+                                while (item.open && item.subs.length > 0) {
+                                    item = item.subs[item.subs.length - 1];
+                                }
                                 _this.select(item);
                             }
-                        }
+                            break;
+                        case 'ArrowLeft':
+                            if (sel.subs.length > 0 && sel.open) {
+                                sel.open = false;
+                                _this.redraw(true);
+                            }
+                            else if (sel.parent) {
+                                _this.select(sel.parent);
+                            }
+                            break;
+                        case 'ArrowRight':
+                            if (sel.subs.length > 0 && !sel.open) {
+                                sel.open = true;
+                                _this.redraw(true);
+                            }
+                            else if (sel.subs.length > 0) {
+                                _this.select(sel.subs[0]);
+                            }
+                            break;
+                        case 'ArrowDown':
+                            if (sel.subs.length > 0 && sel.open) {
+                                _this.select(sel.subs[0]);
+                            }
+                            else if (sel.parent && index < sel.parent.subs.length - 1) {
+                                _this.select(sel.parent.subs[index + 1]);
+                            }
+                            else if (sel.parent) {
+                                var item = sel;
+                                while (item.parent && index === item.parent.subs.length - 1) {
+                                    item = item.parent;
+                                    index = item.parent ? item.parent.subs.indexOf(item) : -1;
+                                }
+                                if (item && index >= 0) {
+                                    item = item.parent.subs[index + 1];
+                                    _this.select(item);
+                                }
+                            }
+                            break;
+                        default:
                     }
                 }
             });
-            this.bindExpander('details');
-            this.bindExpander('project');
             this.redraw();
             this.select(this.activeTab().root);
         };
@@ -738,9 +851,9 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
             }
         };
         Editor.prototype.select = function (item) {
-            this.setItemField('size', item);
-            this.setItemField('name', item);
-            this.setItemField('desc', item);
+            this.setFieldValue('item', 'size', item);
+            this.setFieldValue('item', 'name', item);
+            this.setFieldValue('item', 'desc', item);
             var allEles = document.body.querySelectorAll('.item');
             for (var _i = 0, allEles_1 = allEles; _i < allEles_1.length; _i++) {
                 var ele = allEles_1[_i];
@@ -757,9 +870,11 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
             this.setToolEnabled('down', !!item && item.parent !== null && item.parent.subs.indexOf(item) < item.parent.subs.length - 1);
         };
         Editor.prototype.selected = function () {
-            var selEle = this.container.querySelector('.item.selected');
-            if (selEle) {
-                return this.activeTab().items[parseInt(selEle.dataset.id, DEC_RADIX)];
+            if (this.container) {
+                var selEle = this.container.querySelector('.item.selected');
+                if (selEle) {
+                    return this.activeTab().items[parseInt(selEle.dataset.id, DEC_RADIX)];
+                }
             }
             return null;
         };
@@ -775,11 +890,12 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
                 this.autosaveTimeout = window.setTimeout(function () { return _this.autosave(); }, AUTOSAVE_INTERVAL);
             }
         };
-        Editor.prototype.setItemField = function (field, item) {
-            var input = document.body.querySelector("#details input[name=\"" + field + "\"], #details textarea[name=\"" + field + "\"]");
-            input.disabled = !item;
+        // tslint:disable-next-line:no-any
+        Editor.prototype.setFieldValue = function (group, field, obj) {
+            var input = document.body.querySelector("#fields-" + group + " input[name=\"" + field + "\"], #fields-" + group + " textarea[name=\"" + field + "\"], #fields-" + group + " select[name=\"" + field + "\"]");
+            input.disabled = !obj;
             // tslint:disable-next-line:no-any
-            input.value = item ? item[field] : '';
+            input.value = obj ? obj[field] : '';
         };
         Editor.prototype.setToolEnabled = function (name, enabled) {
             var tool = document.body.querySelector("#tool-" + name);
@@ -799,9 +915,9 @@ define("editor", ["require", "exports", "actions/index", "item", "project", "tab
             document.getElementById('tool-redo').dataset.count = (this.activeTab().redos.length ? this.activeTab().redos.length : '').toString();
         };
         Editor.prototype.updateProjectFields = function () {
-            document.body.querySelector('#project input[name="name"]').value = this.project.name;
-            document.body.querySelector('#project select[name="digitType"]').value = this.project.digitType.toString();
-            document.body.querySelector('#project input[name="pad"]').value = this.project.pad.toString();
+            document.body.querySelector('#fields-project input[name="name"]').value = this.project.name;
+            document.body.querySelector('#fields-project select[name="digitType"]').value = this.activeTab().digitType.toString();
+            document.body.querySelector('#fields-project input[name="pad"]').value = this.activeTab().pad.toString();
         };
         Editor.prototype.updateTabs = function () {
             var out = '';

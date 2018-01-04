@@ -1,5 +1,5 @@
 
 export enum DigitType {
-    Hexadecimal = 0,
-    Decimal = 1,
+	Hexadecimal = 0,
+	Decimal = 1,
 }
