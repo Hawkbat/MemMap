@@ -1,8 +1,8 @@
-import { Action } from './actions'
-import { ed } from './editor'
-import { DigitType } from './enums'
-import { IItemConfig, Item } from './item'
-import { Project } from './project'
+import { Action } from './actions/index.js'
+import { ed } from './editor.js'
+import { DigitType } from './enums.js'
+import { IItemConfig, Item } from './item.js'
+import { Project } from './project.js'
 
 const DEFAULT_MAP_SIZE: number = 0x10000
 

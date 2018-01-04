@@ -1,13 +1,12 @@
 {
 	"compilerOptions": {
-		"target": "es5",
+		"target": "es6",
 		"strict": true,
 		"strictNullChecks": false,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"module": "amd",
-		"moduleResolution": "node",
-		"outFile": "docs/index.js",
+		"module": "es6",
+		"outDir": "docs/js/",
 		"sourceMap": true
 	}
 }

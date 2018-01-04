@@ -1,6 +1,6 @@
-import { ed } from '../editor'
-import { Item } from '../item'
-import { Action } from './action'
+import { ed } from '../editor.js'
+import { Item } from '../item.js'
+import { Action } from './action.js'
 
 export class MoveDownAction extends Action {
 	public index: number

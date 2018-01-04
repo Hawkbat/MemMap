@@ -1,8 +1,8 @@
-import * as Actions from './actions'
-import { DigitType } from './enums'
-import { Item } from './item'
-import { IProjectConfig, Project } from './project'
-import { Tab } from './tab'
+import * as Actions from './actions/index.js'
+import { DigitType } from './enums.js'
+import { Item } from './item.js'
+import { IProjectConfig, Project } from './project.js'
+import { Tab } from './tab.js'
 
 const DEC_RADIX: number = 10
 const AUTOSAVE_INTERVAL: number = 2000

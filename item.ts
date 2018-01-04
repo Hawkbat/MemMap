@@ -1,6 +1,6 @@
-import { ed } from './editor'
-import { DigitType } from './enums'
-import { Tab } from './tab'
+import { ed } from './editor.js'
+import { DigitType } from './enums.js'
+import { Tab } from './tab.js'
 
 const HEX_RADIX: number = 16
 const ODD_MOD: number = 2

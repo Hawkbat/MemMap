@@ -1,5 +1,5 @@
-import { ed } from './editor'
-import { ITabConfig, Tab } from './tab'
+import { ed } from './editor.js'
+import { ITabConfig, Tab } from './tab.js'
 
 export interface IProjectConfig {
 	name: string
