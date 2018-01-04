@@ -1,0 +1,6 @@
+
+Refactor actions and undo/redo to be project-wide
+This enables undoing project-scoped changes like adding/removing tabs
+Will require most existing actions to keep track of the relevant tabs
+
+Make Digit Type and Padding Digits tab-specific properties, and add a second project-style section below the project section
