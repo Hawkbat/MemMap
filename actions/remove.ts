@@ -14,10 +14,8 @@ export class RemoveAction extends Action {
 
 	public do(): void {
 		this.parent = this.item.parent
-		this.index = this.item.parent.subs.indexOf(this.item)
-		this.item.parent.subs.splice(this.index, 1)
-		this.item.parent = null
-		ed.redraw()
+		this.index = this.item.parent.getChildren().indexOf(this.item)
+		this.item.unparent()
 		ed.select(null)
 	}
 
@@ -26,9 +24,7 @@ export class RemoveAction extends Action {
 	}
 
 	public undo(): void {
-		this.item.parent = this.parent
-		this.parent.subs.splice(this.index, 0, this.item)
-		ed.redraw()
+		this.parent.insertChild(this.item, this.index)
 		ed.select(this.item)
 	}
 }

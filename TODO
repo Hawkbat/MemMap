@@ -1,6 +1,4 @@
 
-Refactor actions and undo/redo to be project-wide
-This enables undoing project-scoped changes like adding/removing tabs
-Will require most existing actions to keep track of the relevant tabs
+Figure out a way to abstract away tool enable/disable; currently undo/redo and the contextual item tools are toggled in other places
 
-Make Digit Type and Padding Digits tab-specific properties, and add a second project-style section below the project section
+Sufficiently complex projects might slow down on render; maybe eventually we can migrate to a framework with a virtual DOM like React

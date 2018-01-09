@@ -11,31 +11,27 @@ export class AddAction extends Action {
 		super()
 		this.parent = (parent === null) ? ed.activeTab().root : parent
 		this.src = src
+
+		this.item = new Item(ed.activeTab())
+		if (this.src) {
+			this.item.proto = this.src
+		} else {
+			// tslint:disable-next-line:no-any
+			(this.item as any).name = `Item ${this.item.id}`
+		}
 	}
 
 	public do(): void {
-		this.item = new Item(ed.activeTab())
-		this.item.name = `Item ${this.item.id}`
-		if (this.src) {
-			this.item.copy(this.src)
-		}
-		this.item.parent = this.parent
-		this.parent.subs.push(this.item)
-		ed.redraw()
+		this.item.reparent(this.parent)
 		ed.select(this.item)
 	}
 
 	public redo(): void {
-		this.item.parent = this.parent
-		this.parent.subs.push(this.item)
-		ed.redraw()
-		ed.select(this.item)
+		this.do()
 	}
 
 	public undo(): void {
-		this.item.parent.subs.splice(this.item.parent.subs.indexOf(this.item), 1)
-		this.item.parent = null
-		ed.redraw()
+		this.item.unparent()
 		ed.select(null)
 	}
 }

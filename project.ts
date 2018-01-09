@@ -2,6 +2,7 @@ import { ed } from './editor.js'
 import { ITabConfig, Tab } from './tab.js'
 
 export interface IProjectConfig {
+	depthLimit: number
 	name: string
 	tabs: ITabConfig[]
 }
@@ -33,6 +34,7 @@ export class Project {
 		n.click()
 	}
 
+	public depthLimit: number = 5
 	public name: string = 'New Project'
 	public tabs: Tab[] = []
 
@@ -53,6 +55,6 @@ export class Project {
 	}
 
 	public serialize(): IProjectConfig {
-		return { name: this.name, tabs: this.tabs.map((tab: Tab) => tab.serialize()) }
+		return { depthLimit: this.depthLimit, name: this.name, tabs: this.tabs.map((tab: Tab) => tab.serialize()) }
 	}
 }

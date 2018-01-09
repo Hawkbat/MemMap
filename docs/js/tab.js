@@ -8,22 +8,26 @@ export class Tab {
         this.items = [];
         this.pad = 4;
         this.redos = [];
+        this.tempProtoMap = {};
         this.undos = [];
         this.project = project;
         this.project.tabs.push(this);
-        this.root = itemConf ? Item.deserialize(this, itemConf) : new Item(this, DEFAULT_MAP_SIZE, `Map ${this.project.tabs.length}`, '');
+        this.root = itemConf ? Item.deserialize(this, itemConf) : new Item(this, DEFAULT_MAP_SIZE, `Map ${this.project.tabs.length}`);
     }
     static deserialize(project, conf) {
         const t = new Tab(project, conf.root);
         t.digitType = conf.digitType;
         t.pad = conf.pad;
+        for (const key of Object.keys(t.tempProtoMap)) {
+            Item.byUUID[key].proto = Item.byUUID[t.tempProtoMap[parseFloat(key)]];
+        }
         return t;
     }
     do(act) {
         act.do();
         this.redos.length = 0;
         this.undos.push(act);
-        ed.updateCounters();
+        ed.redraw(true);
         ed.setToolEnabled('undo', this.undos.length > 0);
         ed.setToolEnabled('redo', this.redos.length > 0);
         ed.setDirty();
@@ -33,7 +37,7 @@ export class Tab {
             const act = this.redos.pop();
             act.redo();
             this.undos.push(act);
-            ed.updateCounters();
+            ed.redraw(true);
             ed.setToolEnabled('undo', this.undos.length > 0);
             ed.setToolEnabled('redo', this.redos.length > 0);
             ed.setDirty();
@@ -47,7 +51,7 @@ export class Tab {
             const act = this.undos.pop();
             act.undo();
             this.redos.push(act);
-            ed.updateCounters();
+            ed.redraw(true);
             ed.setToolEnabled('undo', this.undos.length > 0);
             ed.setToolEnabled('redo', this.redos.length > 0);
             ed.setDirty();

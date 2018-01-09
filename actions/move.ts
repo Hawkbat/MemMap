@@ -11,16 +11,13 @@ export class MoveAction extends Action {
 	public constructor(item: Item, parent: Item) {
 		super()
 		this.item = item
-		this.oldIndex = item.parent.subs.indexOf(item)
+		this.oldIndex = item.parent.getChildren().indexOf(item)
 		this.oldParent = item.parent
 		this.newParent = parent
 	}
 
 	public do(): void {
-		this.item.parent.subs.splice(this.item.parent.subs.indexOf(this.item), 1)
-		this.item.parent = this.newParent
-		this.newParent.subs.push(this.item)
-		ed.redraw()
+		this.item.reparent(this.newParent)
 		ed.select(this.item)
 	}
 
@@ -29,10 +26,7 @@ export class MoveAction extends Action {
 	}
 
 	public undo(): void {
-		this.item.parent.subs.splice(this.item.parent.subs.indexOf(this.item), 1)
-		this.item.parent = this.oldParent
-		this.oldParent.subs.splice(this.oldIndex, 0, this.item)
-		ed.redraw()
+		this.oldParent.insertChild(this.item, this.oldIndex)
 		ed.select(this.item)
 	}
 }

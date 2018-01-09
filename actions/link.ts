@@ -2,18 +2,20 @@ import { ed } from '../editor.js'
 import { Item } from '../item.js'
 import { Action } from './action.js'
 
-export class MoveUpAction extends Action {
-	public index: number
+export class LinkAction extends Action {
 	public item: Item
+	public newProto: Item
+	public oldProto: Item
 
-	public constructor(item: Item) {
+	public constructor(item: Item, proto?: Item) {
 		super()
 		this.item = item
+		this.oldProto = item.proto
+		this.newProto = proto
 	}
 
 	public do(): void {
-		this.index = this.item.parent.getChildren().indexOf(this.item)
-		this.item.parent.insertChild(this.item, this.index - 1)
+		this.item.proto = this.newProto
 		ed.select(this.item)
 	}
 
@@ -22,7 +24,7 @@ export class MoveUpAction extends Action {
 	}
 
 	public undo(): void {
-		this.item.parent.insertChild(this.item, this.index)
+		this.item.proto = this.oldProto
 		ed.select(this.item)
 	}
 }

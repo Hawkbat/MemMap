@@ -20,7 +20,7 @@ html, body {
 }
 
 .expand {
-    flex-grow: 1;
+    flex-grow: 1 !important;
 }
 
 .field {
@@ -63,6 +63,7 @@ textarea.field {
 }
 
 .item ~ .col {
+	flex: 0 0 auto;
     padding-left: 1.825ch;
     margin-left: 2ch;
 }
@@ -89,10 +90,20 @@ textarea.field {
     overflow: hidden;
 }
 
-.item > i:first-child {
-    margin-left: -6px;
+.item > i {
+	display: flex;
+	justify-content: center;
+	align-items: center;
     width: 20px;
     height: 14px;
+}
+
+.item > i:first-child {
+    margin-left: -6px;
+}
+
+.item > i:last-child {
+    margin-right: -6px;
 }
 
 .item:hover {
@@ -105,6 +116,16 @@ textarea.field {
 
 .item.selected {
     border: 1px solid gray;
+}
+
+.item.proto {
+	background-color: #ddd;
+	border-style: dashed;
+}
+
+.item.highlighted {
+	background-color: hsl(120, 25%, 87.5%);
+	border-color: hsl(120, 25%, 50%);
 }
 
 .tool {
@@ -234,13 +255,7 @@ textarea.field {
     display: none;
 }
 
-#header {
-    border-bottom: 1px solid dimgray;
-	background-color: hsl(120, 25%, 50%);
-	flex-wrap: wrap;
-}
-
-#tabs {
+.tabs {
     background-color: #ddd;
     border-bottom: 1px solid darkgray;
     width: 0;
@@ -248,7 +263,7 @@ textarea.field {
     overflow-x: auto;
 }
 
-#container {
+.items {
     flex: 1 1 0;
     font-family: monospace;
     font-size: 12px;
@@ -264,6 +279,12 @@ textarea.field {
 	overflow: auto;
 }
 
+#header {
+    border-bottom: 1px solid dimgray;
+	background-color: hsl(120, 25%, 50%);
+	flex-wrap: wrap;
+}
+
 #body {
     border-left: 1px solid dimgray;
     border-right: 1px solid dimgray;
@@ -274,4 +295,6 @@ textarea.field {
 	background-color: hsl(120, 25%, 50%);
 	padding: 5px;
 	font-size: 12px;
+	color: white;
+	user-select: none;
 }

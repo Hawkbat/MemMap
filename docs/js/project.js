@@ -2,6 +2,7 @@ import { ed } from './editor.js';
 import { Tab } from './tab.js';
 export class Project {
     constructor(useDefaults = true) {
+        this.depthLimit = 5;
         this.name = 'New Project';
         this.tabs = [];
         if (useDefaults) {
@@ -42,7 +43,7 @@ export class Project {
         ed.setDirty(false);
     }
     serialize() {
-        return { name: this.name, tabs: this.tabs.map((tab) => tab.serialize()) };
+        return { depthLimit: this.depthLimit, name: this.name, tabs: this.tabs.map((tab) => tab.serialize()) };
     }
 }
 //# sourceMappingURL=project.js.map

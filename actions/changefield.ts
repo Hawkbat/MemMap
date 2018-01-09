@@ -25,7 +25,6 @@ export class ChangeFieldAction extends Action {
 		// tslint:disable-next-line:no-any
 		(this.obj as any)[this.field] = this.newValue
 		ed.setFieldValue(this.group, this.field, this.obj)
-		ed.redraw()
 		if (this.obj instanceof Item) {
 			ed.select(this.obj as Item)
 		}
@@ -39,7 +38,6 @@ export class ChangeFieldAction extends Action {
 		// tslint:disable-next-line:no-any
 		(this.obj as any)[this.field] = this.oldValue
 		ed.setFieldValue(this.group, this.field, this.obj)
-		ed.redraw()
 		if (this.obj instanceof Item) {
 			ed.select(this.obj as Item)
 		}

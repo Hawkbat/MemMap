@@ -1,6 +1,5 @@
 import * as Actions from './actions/index.js';
 import { DigitType } from './enums.js';
-import { Item } from './item.js';
 import { Project } from './project.js';
 import { Tab } from './tab.js';
 const DEC_RADIX = 10;
@@ -9,6 +8,8 @@ export class Editor {
     constructor() {
         this.cbItem = null;
         this.curTab = 0;
+        this.linkItem = null;
+        this.selectedItem = null;
     }
     activeTab() {
         return this.project.tabs[this.curTab];
@@ -92,7 +93,6 @@ export class Editor {
     addTab() {
         const tab = new Tab(this.project);
         this.curTab = this.project.tabs.length - 1;
-        this.redraw();
         this.updateProjectFields();
         this.select(tab.root);
     }
@@ -118,14 +118,18 @@ export class Editor {
             }
         });
     }
-    addTool(name, title, icon, key, action) {
+    addTool(name, title, icon, key, action, count) {
         const tool = document.querySelector('#header').appendChild(document.createElement('div'));
         tool.classList.add('tool');
         tool.id = `tool-${name}`;
         tool.title = `${title}${key ? ` (${key.substr(0, 1).toUpperCase() + key.substr(1)})` : ''}`;
         tool.innerHTML = `<i class="fa fa-${icon}"></i>`;
-        tool.dataset.count = '0';
-        // Const tool: HTMLElement = document.body.querySelector(`#tool-${name}`) as HTMLElement
+        if (count) {
+            tool.dataset.count = count().toString();
+            document.addEventListener('redraw', () => {
+                tool.dataset.count = count().toString();
+            });
+        }
         tool.addEventListener('click', () => {
             action(this.selected());
         });
@@ -148,18 +152,31 @@ export class Editor {
     addWorkspace() {
         const workspace = document.createElement('div');
         workspace.classList.add('col', 'expand');
-        workspace.innerHTML = `<div id="workspace" class="col expand"><div id="tabs" class="row"></div><div id="container" class="col"></div></div>`;
         document.getElementById('body').appendChild(workspace);
-        this.container = document.getElementById('container');
-        this.container.addEventListener('click', (e) => {
+        const tabs = document.createElement('div');
+        tabs.classList.add('tabs', 'row');
+        workspace.appendChild(tabs);
+        const items = document.createElement('div');
+        items.classList.add('items', 'col');
+        workspace.appendChild(items);
+        items.addEventListener('click', (e) => {
             const ele = this.findItemElement(e.target);
             let item;
             if (ele) {
                 item = this.activeTab().items[parseInt(ele.dataset.id, DEC_RADIX)];
             }
-            this.select(item);
+            if (item && this.linkItem) {
+                const linkItem = this.linkItem;
+                this.linkItem = null;
+                if (linkItem.tab === this.activeTab() && item !== linkItem) {
+                    this.activeTab().do(new Actions.LinkAction(linkItem, item));
+                }
+            }
+            else {
+                this.select(item);
+            }
         });
-        this.container.addEventListener('dragstart', (e) => {
+        items.addEventListener('dragstart', (e) => {
             const ele = this.findItemElement(e.target);
             if (ele) {
                 const item = this.activeTab().items[parseInt(ele.dataset.id, DEC_RADIX)];
@@ -174,14 +191,14 @@ export class Editor {
                 e.preventDefault();
             }
         });
-        this.container.addEventListener('dragover', (e) => {
+        items.addEventListener('dragover', (e) => {
             e.preventDefault();
             const ele = this.findItemElement(e.target);
             if (ele) {
                 e.dataTransfer.dropEffect = 'move';
             }
         });
-        this.container.addEventListener('drop', (e) => {
+        items.addEventListener('drop', (e) => {
             e.preventDefault();
             const ele = this.findItemElement(e.target);
             if (ele) {
@@ -192,6 +209,24 @@ export class Editor {
                 }
             }
         });
+        document.addEventListener('redraw', () => {
+            items.innerHTML = this.activeTab().root.render();
+            let out = '';
+            for (let i = 0; i < this.project.tabs.length; i++) {
+                if (i === this.curTab) {
+                    out += `<div class="tab selected">${this.activeTab().root.getName()}`;
+                }
+                else {
+                    out += `<div class="tab" onclick="ed.changeTab(${i})">${this.project.tabs[i].root.getName()}`;
+                }
+                if (this.project.tabs.length > 1) {
+                    out += `<i class="fa fa-close" onclick="ed.closeTab(${i})"></i>`;
+                }
+                out += '</div>';
+            }
+            out += '<div id="new-tab" class="tab" onclick="ed.addTab()"><i class="fa fa-plus"></i></div>';
+            tabs.innerHTML = out;
+        });
     }
     autosave() {
         localStorage.setItem('memmap-autosave', JSON.stringify(this.project.serialize()));
@@ -199,7 +234,6 @@ export class Editor {
     }
     changeTab(i) {
         this.curTab = i;
-        this.redraw();
         this.updateProjectFields();
         this.select(this.activeTab().root);
     }
@@ -208,7 +242,6 @@ export class Editor {
             this.curTab--;
         }
         this.project.tabs.splice(i, 1);
-        this.redraw();
         this.updateProjectFields();
         this.select(this.activeTab().root);
     }
@@ -240,6 +273,7 @@ export class Editor {
         this.addInputField('project', 'pad', 'Padding Digits', 'number', () => this.activeTab());
         this.addHeadingField('project', 'Project');
         this.addInputField('project', 'name', 'Name', 'text', () => this.project);
+        this.addInputField('project', 'depthLimit', 'Nesting Limit', 'number', () => this.project);
         this.addToolSpacer();
         this.addTool('new', 'New Project', 'file', 'n', () => {
             if (confirm('You will lose all autosaved data if you start a new project. Continue?')) {
@@ -252,22 +286,14 @@ export class Editor {
         this.addToolSpacer();
         this.addTool('cut', 'Cut', 'cut', 'x', (item) => {
             if (item && item.parent) {
-                if (this.cbItem) {
-                    this.cbItem.copy(item);
-                }
-                else {
-                    this.cbItem = item;
-                }
+                this.cbItem = item;
                 this.activeTab().do(new Actions.RemoveAction(item));
                 this.setToolEnabled('paste', true);
             }
         });
         this.addTool('copy', 'Copy', 'copy', 'c', (item) => {
             if (item) {
-                if (!this.cbItem) {
-                    this.cbItem = new Item(ed.activeTab());
-                }
-                this.cbItem.copy(item);
+                this.cbItem = item;
                 this.setToolEnabled('paste', true);
             }
         });
@@ -278,9 +304,9 @@ export class Editor {
         });
         this.setToolEnabled('paste', false);
         this.addToolSpacer();
-        this.addTool('undo', 'Undo', 'undo', 'z', () => this.activeTab().undo());
+        this.addTool('undo', 'Undo', 'undo', 'z', () => this.activeTab().undo(), () => this.activeTab().undos.length ? this.activeTab().undos.length : 0);
         this.setToolEnabled('undo', false);
-        this.addTool('redo', 'Redo', 'repeat', 'y', () => this.activeTab().redo());
+        this.addTool('redo', 'Redo', 'repeat', 'y', () => this.activeTab().redo(), () => this.activeTab().redos.length ? this.activeTab().redos.length : 0);
         this.setToolEnabled('redo', false);
         this.addToolSpacer();
         this.addTool('add', 'Add Item', 'plus', 'Insert', (item) => this.activeTab().do(new Actions.AddAction(item)));
@@ -289,20 +315,32 @@ export class Editor {
                 this.activeTab().do(new Actions.RemoveAction(item));
             }
         });
-        this.addTool('up', 'Move Up', 'arrow-up', 'Home', (item) => {
+        this.addTool('up', 'Move Item Up', 'arrow-up', 'Home', (item) => {
             if (item && item.parent) {
-                const index = item.parent.subs.indexOf(item);
+                const index = item.parent.getChildren().indexOf(item);
                 if (index > 0) {
                     this.activeTab().do(new Actions.MoveUpAction(item));
                 }
             }
         });
-        this.addTool('down', 'Move Down', 'arrow-down', 'End', (item) => {
+        this.addTool('down', 'Move Item Down', 'arrow-down', 'End', (item) => {
             if (item && item.parent) {
-                const index = item.parent.subs.indexOf(item);
-                if (index < item.parent.subs.length - 1) {
+                const index = item.parent.getChildren().indexOf(item);
+                if (index < item.parent.getChildren().length - 1) {
                     this.activeTab().do(new Actions.MoveDownAction(item));
                 }
+            }
+        });
+        this.addToolSpacer();
+        this.addTool('link', 'Link Item', 'link', 'l', (item) => {
+            if (item) {
+                this.linkItem = item;
+                this.redraw();
+            }
+        });
+        this.addTool('unlink', 'Unlink Item', 'unlink', 'u', (item) => {
+            if (item && item.proto) {
+                this.activeTab().do(new Actions.LinkAction(item));
             }
         });
         this.addToolSpacer();
@@ -310,22 +348,22 @@ export class Editor {
         window.addEventListener('keydown', (e) => {
             const sel = this.selected();
             if (sel && (!document.activeElement || document.activeElement === document.body)) {
-                let index = sel.parent ? sel.parent.subs.indexOf(sel) : -1;
+                let index = sel.parent ? sel.parent.getChildren().indexOf(sel) : -1;
                 switch (e.key) {
                     case 'ArrowUp':
                         if (index === 0) {
                             this.select(sel.parent);
                         }
                         else if (index > 0) {
-                            let item = sel.parent.subs[index - 1];
-                            while (item.open && item.subs.length > 0) {
-                                item = item.subs[item.subs.length - 1];
+                            let item = sel.parent.getChildren()[index - 1];
+                            while (item.open && item.getChildren().length > 0) {
+                                item = item.getChildren()[item.getChildren().length - 1];
                             }
                             this.select(item);
                         }
                         break;
                     case 'ArrowLeft':
-                        if (sel.subs.length > 0 && sel.open) {
+                        if (sel.getChildren().length > 0 && sel.open) {
                             sel.open = false;
                             this.redraw(true);
                         }
@@ -334,29 +372,29 @@ export class Editor {
                         }
                         break;
                     case 'ArrowRight':
-                        if (sel.subs.length > 0 && !sel.open) {
+                        if (sel.getChildren().length > 0 && !sel.open) {
                             sel.open = true;
                             this.redraw(true);
                         }
-                        else if (sel.subs.length > 0) {
-                            this.select(sel.subs[0]);
+                        else if (sel.getChildren().length > 0) {
+                            this.select(sel.getChildren()[0]);
                         }
                         break;
                     case 'ArrowDown':
-                        if (sel.subs.length > 0 && sel.open) {
-                            this.select(sel.subs[0]);
+                        if (sel.getChildren().length > 0 && sel.open) {
+                            this.select(sel.getChildren()[0]);
                         }
-                        else if (sel.parent && index < sel.parent.subs.length - 1) {
-                            this.select(sel.parent.subs[index + 1]);
+                        else if (sel.parent && index < sel.parent.getChildren().length - 1) {
+                            this.select(sel.parent.getChildren()[index + 1]);
                         }
                         else if (sel.parent) {
                             let item = sel;
-                            while (item.parent && index === item.parent.subs.length - 1) {
+                            while (item.parent && index === item.parent.getChildren().length - 1) {
                                 item = item.parent;
-                                index = item.parent ? item.parent.subs.indexOf(item) : -1;
+                                index = item.parent ? item.parent.getChildren().indexOf(item) : -1;
                             }
                             if (item && index >= 0) {
-                                item = item.parent.subs[index + 1];
+                                item = item.parent.getChildren()[index + 1];
                                 this.select(item);
                             }
                         }
@@ -365,19 +403,20 @@ export class Editor {
                 }
             }
         });
-        this.redraw();
         this.select(this.activeTab().root);
     }
     redraw(keepSelected = false) {
         const sel = this.selected();
-        this.container.innerHTML = this.activeTab().root.render();
-        this.updateTabs();
-        this.updateCounters();
+        document.dispatchEvent(new Event('redraw'));
         if (keepSelected) {
-            this.select(sel);
+            this.select(sel, true);
+        }
+        else {
+            this.select(undefined, true);
         }
     }
-    select(item) {
+    select(item, skipRedraw = false) {
+        this.selectedItem = item;
         this.setFieldValue('item', 'size', item);
         this.setFieldValue('item', 'name', item);
         this.setFieldValue('item', 'desc', item);
@@ -386,23 +425,22 @@ export class Editor {
             ele.classList.remove('selected');
         }
         if (item) {
-            const selEle = this.container.querySelector(`.item[data-id="${item.id}"]`);
+            const selEle = document.body.querySelector(`.item[data-id="${item.id}"]:not(.proto)`);
             if (selEle) {
                 selEle.classList.add('selected');
             }
         }
-        this.setToolEnabled('rem', !!item && item.parent !== null);
-        this.setToolEnabled('up', !!item && item.parent !== null && item.parent.subs.indexOf(item) > 0);
-        this.setToolEnabled('down', !!item && item.parent !== null && item.parent.subs.indexOf(item) < item.parent.subs.length - 1);
+        this.setToolEnabled('rem', item && !!item.parent);
+        this.setToolEnabled('up', item && item.parent && item.parent.getChildren().indexOf(item) > 0);
+        this.setToolEnabled('down', item && item.parent && item.parent.getChildren().indexOf(item) < item.parent.getChildren().length - 1);
+        this.setToolEnabled('link', !!item);
+        this.setToolEnabled('unlink', item && !!item.proto);
+        if (!skipRedraw) {
+            this.redraw(true);
+        }
     }
     selected() {
-        if (this.container) {
-            const selEle = this.container.querySelector('.item.selected');
-            if (selEle) {
-                return this.activeTab().items[parseInt(selEle.dataset.id, DEC_RADIX)];
-            }
-        }
-        return null;
+        return this.selectedItem;
     }
     setDirty(val = true) {
         this.dirty = val;
@@ -419,7 +457,8 @@ export class Editor {
         const input = document.body.querySelector(`#fields-${group} input[name="${field}"], #fields-${group} textarea[name="${field}"], #fields-${group} select[name="${field}"]`);
         input.disabled = !obj;
         // tslint:disable-next-line:no-any
-        input.value = obj ? obj[field] : '';
+        const val = obj ? obj[field] : '';
+        input.value = val !== undefined ? val : '';
     }
     setToolEnabled(name, enabled) {
         const tool = document.body.querySelector(`#tool-${name}`);
@@ -430,35 +469,17 @@ export class Editor {
             tool.classList.add('disabled');
         }
     }
+    shouldHighlight(item) {
+        return item === this.linkItem || (this.selectedItem && item === this.selectedItem.proto);
+    }
     toggleOpen(id) {
         this.activeTab().items[id].open = !this.activeTab().items[id].open;
         this.redraw(true);
-    }
-    updateCounters() {
-        document.getElementById('tool-undo').dataset.count = (this.activeTab().undos.length ? this.activeTab().undos.length : '').toString();
-        document.getElementById('tool-redo').dataset.count = (this.activeTab().redos.length ? this.activeTab().redos.length : '').toString();
     }
     updateProjectFields() {
         document.body.querySelector('#fields-project input[name="name"]').value = this.project.name;
         document.body.querySelector('#fields-project select[name="digitType"]').value = this.activeTab().digitType.toString();
         document.body.querySelector('#fields-project input[name="pad"]').value = this.activeTab().pad.toString();
-    }
-    updateTabs() {
-        let out = '';
-        for (let i = 0; i < this.project.tabs.length; i++) {
-            if (i === this.curTab) {
-                out += `<div class="tab selected">${this.activeTab().root.name}`;
-            }
-            else {
-                out += `<div class="tab" onclick="ed.changeTab(${i})">${this.project.tabs[i].root.name}`;
-            }
-            if (this.project.tabs.length > 1) {
-                out += `<i class="fa fa-close" onclick="ed.closeTab(${i})"></i>`;
-            }
-            out += '</div>';
-        }
-        out += '<div id="new-tab" class="tab" onclick="ed.addTab()"><i class="fa fa-plus"></i></div>';
-        document.getElementById('tabs').innerHTML = out;
     }
 }
 export const ed = new Editor();
