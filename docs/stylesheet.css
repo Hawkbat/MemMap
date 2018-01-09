@@ -71,7 +71,7 @@ textarea.field {
 .cell {
     user-select: none;
     margin-right: 1ch;
-    white-space: nowrap;
+    white-space: pre;
 }
 
 .cell:not(:first-child) {
@@ -87,7 +87,7 @@ textarea.field {
     border-radius: 1ch;
     padding: .5ch 1ch;
     margin: .25ch;
-    overflow: hidden;
+	overflow: hidden;
 }
 
 .item > i {
@@ -193,7 +193,7 @@ textarea.field {
     border: 1px solid darkgray;
     border-bottom: 0;
     user-select: none;
-    white-space: nowrap;
+    white-space: pre;
     position: relative;
 }
 

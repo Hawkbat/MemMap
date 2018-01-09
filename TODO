@@ -2,3 +2,5 @@
 Figure out a way to abstract away tool enable/disable; currently undo/redo and the contextual item tools are toggled in other places
 
 Sufficiently complex projects might slow down on render; maybe eventually we can migrate to a framework with a virtual DOM like React
+
+Make a more compact serialization structure; if still using JSON, you could serialize arrays instead of objects

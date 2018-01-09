@@ -193,6 +193,8 @@ export class Editor {
 				this.linkItem = null
 				if (linkItem.tab === this.activeTab() && item !== linkItem) {
 					this.activeTab().do(new Actions.LinkAction(linkItem, item))
+				} else {
+					this.select()
 				}
 			} else {
 				this.select(item)
@@ -384,6 +386,12 @@ export class Editor {
 			}
 		})
 
+		this.addTool('break', 'Break Item Link', 'anchor', 'b', (item: Item) => {
+			if (item && item.proto) {
+				this.activeTab().do(new Actions.BreakLinkAction(item))
+			}
+		})
+
 		this.addToolSpacer()
 
 		// tslint:disable-next-line:cyclomatic-complexity
@@ -478,6 +486,7 @@ export class Editor {
 		this.setToolEnabled('down', item && item.parent && item.parent.getChildren().indexOf(item) < item.parent.getChildren().length - 1)
 		this.setToolEnabled('link', !!item)
 		this.setToolEnabled('unlink', item && !!item.proto)
+		this.setToolEnabled('break', item && !!item.proto)
 
 		if (!skipRedraw) {
 			this.redraw(true)
